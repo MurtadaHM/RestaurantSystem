@@ -1,0 +1,11 @@
+## [كود لإهمال ملفات الـ Build والملفات المؤقتة]
+[Bb]in/
+[Oo]bj/
+.vs/
+.vscode/
+*.user
+*.userosscache
+*.sln.docstates
+
+## [كود لإهمال ملفات الإعدادات المحلية]
+appsettings.Development.json
