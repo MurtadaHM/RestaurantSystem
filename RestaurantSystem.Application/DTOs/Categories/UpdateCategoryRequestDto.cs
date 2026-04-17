@@ -15,12 +15,14 @@ namespace RestaurantSystem.Application.DTOs.Categories
         public string Name { get; set; } = default!;
 
         [MaxLength(500, ErrorMessage = "وصف الفئة لا يمكن أن يتجاوز 500 حرف")]
-        public string Description { get; set; } = default!;
+        public string? Description { get; set; } // ✅ تم التحويل لـ nullable لكي يتطابق مع الـ Entity
 
-        [Url(ErrorMessage = "رابط الصورة غير صحيح")]
-        public string ImageUrl { get; set; } = default!;
+        public string? ImageUrl { get; set; }
 
         [Range(1, int.MaxValue, ErrorMessage = "ترتيب العرض يجب أن يكون أكبر من 0")]
         public int DisplayOrder { get; set; }
+
+        [Required(ErrorMessage = "معرّف القسم مطلوب")]
+        public Guid DepartmentId { get; set; }
     }
 }

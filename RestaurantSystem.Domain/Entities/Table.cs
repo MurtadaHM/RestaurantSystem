@@ -1,27 +1,35 @@
-﻿using System;
-using System.Collections.Generic;
-using RestaurantSystem.Domain.Enums;
+﻿using RestaurantSystem.Domain.Enums;
 
 namespace RestaurantSystem.Domain.Entities
 {
     public class Table : BaseEntity
     {
-        /// <summary>رقم الطاولة</summary>
-        public string TableNumber { get; set; } = string.Empty; // ✅ Required
+        public string TableNumber { get; set; } = string.Empty;
 
-        /// <summary>عدد المقاعد</summary>
-        public int Capacity { get; set; }                        // ✅ Required
+        // كود عام يستخدم داخل QR
+        public string Code { get; set; } = string.Empty;
 
-        /// <summary>موقع الطاولة</summary>
-        public string? Location { get; set; }                    // ✅ FIX: nullable
+        public int Capacity { get; set; }
 
-        /// <summary>حالة الطاولة</summary>
+        // لازم يكون إجباري
+        public string Location { get; set; } = string.Empty;
+
+        // مثال: Main Hall / VIP / Garden
+        public string? Zone { get; set; }
+
+        public int? FloorNumber { get; set; }
+
+        public bool IsActive { get; set; } = true;
+
+        // للتحكم بإمكانية الطلب من QR
+        public bool IsOrderingEnabled { get; set; } = true;
+
         public TableStatus Status { get; set; } = TableStatus.Available;
 
-        /// <summary>ملاحظات إضافية</summary>
-        public string? Notes { get; set; }                       // ✅ FIX: nullable
+        public string? Notes { get; set; }
 
-        // Navigation Properties
-        public ICollection<Order> Orders { get; set; } = new List<Order>();
+        public virtual ICollection<Order> Orders { get; set; } = new List<Order>();
+
+        public virtual ICollection<Reservation> Reservations { get; set; } = new List<Reservation>();
     }
 }

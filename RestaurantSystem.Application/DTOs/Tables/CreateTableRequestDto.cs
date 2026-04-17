@@ -2,22 +2,31 @@
 
 namespace RestaurantSystem.Application.DTOs.Tables
 {
-    /// <summary>
-    /// DTO لإنشاء طاولة جديدة
-    /// </summary>
     public class CreateTableRequestDto
     {
         [Required(ErrorMessage = "رقم الطاولة مطلوب")]
-        [MaxLength(10, ErrorMessage = "رقم الطاولة لا يمكن أن يتجاوز 10 أحرف")]
+        [MaxLength(10)]
         public string TableNumber { get; set; } = default!;
 
-        [Required(ErrorMessage = "السعة مطلوبة")]
-        [Range(1, 100, ErrorMessage = "السعة يجب أن تكون بين 1 و 100")]
+        [Required(ErrorMessage = "كود الطاولة مطلوب")]
+        [MaxLength(30)]
+        public string Code { get; set; } = default!;
+
+        [Required]
+        [Range(1, 100)]
         public int Capacity { get; set; }
 
-        [MaxLength(100, ErrorMessage = "الموقع لا يمكن أن يتجاوز 100 حرف")]
+        [Required]
+        [MaxLength(100)]
         public string Location { get; set; } = default!;
 
+        [MaxLength(50)]
+        public string? Zone { get; set; }
+
+        public int? FloorNumber { get; set; }
+
         public bool IsActive { get; set; } = true;
+
+        public bool IsOrderingEnabled { get; set; } = true;
     }
 }

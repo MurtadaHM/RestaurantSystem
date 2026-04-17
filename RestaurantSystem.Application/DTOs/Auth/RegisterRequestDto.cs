@@ -3,7 +3,7 @@
 namespace RestaurantSystem.Application.DTOs.Auth
 {
     /// <summary>
-    /// DTO لطلب التسجيل (إنشاء حساب جديد)
+    /// DTO لطلب التسجيل العام (إنشاء حساب عميل)
     /// </summary>
     public class RegisterRequestDto
     {
@@ -34,8 +34,7 @@ namespace RestaurantSystem.Application.DTOs.Auth
         [Compare("Password", ErrorMessage = "كلمة المرور وتأكيدها لا تتطابقان")]
         public string ConfirmPassword { get; set; } = default!;
 
-        public string Address { get; set; } = default!;
-
-        public string City { get; set; } = default!;
+        public string? Address { get; set; }
+        public string? City { get; set; }
     }
 }

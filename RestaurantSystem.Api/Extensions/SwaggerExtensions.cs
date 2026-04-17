@@ -1,4 +1,5 @@
 ﻿using Microsoft.OpenApi.Models;
+using System.Reflection;
 
 namespace RestaurantSystem.Api.Configurations
 {
@@ -12,19 +13,27 @@ namespace RestaurantSystem.Api.Configurations
                 {
                     Title = "Restaurant Management System API",
                     Version = "v1",
-                    Description = "API لإدارة عمليات المطعم - تطوير مرتضى حسين بواسطة ",
+                    Description = "API متكامل لإدارة عمليات المطعم (الطلبات، الطاولات، الأقسام) - تطوير المبرمج مرتضى حسين",
                     Contact = new OpenApiContact
                     {
-                        Name = "فريق نظام المطعم",
+                        Name = "تواصل مع الادارة",
                         Email = "mmortada721@gmail.com"
                     }
                 });
 
-                // ✅ الحل الجذري لمشكلة الـ Error 500 (تشابه الأسماء)
-                // يخبر Swagger باستخدام الاسم الكامل للكلاس لتجنب التضارب
-                options.CustomSchemaIds(type => type.FullName);
+                // ✅ 1. إظهار التعليقات (Summary) في واجهة Swagger
+                var xmlFile = $"{Assembly.GetExecutingAssembly().GetName().Name}.xml";
+                var xmlPath = Path.Combine(AppContext.BaseDirectory, xmlFile);
+                if (File.Exists(xmlPath))
+                {
+                    options.IncludeXmlComments(xmlPath);
+                }
 
-                // إضافة دعم JWT في Swagger
+                // ✅ 2. الحل الذكي لتضارب الأسماء (Schema IDs)
+                // بدلاً من FullName الممل، نستخدم الاسم فقط إلا في حال وجود تضارب
+                options.CustomSchemaIds(type => type.ToString().Replace("RestaurantSystem.Application.DTOs.", ""));
+
+                // 🔐 3. إعدادات الحماية (JWT)
                 options.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
                 {
                     Name = "Authorization",
@@ -40,11 +49,7 @@ namespace RestaurantSystem.Api.Configurations
                     {
                         new OpenApiSecurityScheme
                         {
-                            Reference = new OpenApiReference
-                            {
-                                Type = ReferenceType.SecurityScheme,
-                                Id = "Bearer"
-                            }
+                            Reference = new OpenApiReference { Type = ReferenceType.SecurityScheme, Id = "Bearer" }
                         },
                         Array.Empty<string>()
                     }
@@ -60,12 +65,11 @@ namespace RestaurantSystem.Api.Configurations
             app.UseSwaggerUI(options =>
             {
                 options.SwaggerEndpoint("/swagger/v1/swagger.json", "Restaurant API v1");
+                options.RoutePrefix = string.Empty; // يفتح Swagger مباشرة عند التشغيل
+                options.DocumentTitle = "Restaurant System Documentation";
 
-                // خيار اختياري: إذا جعلت RoutePrefix فارغاً، سيفتح Swagger فور تشغيل المشروع (/)
-                // بدلاً من (/swagger)
-                options.RoutePrefix = string.Empty;
-
-                options.DocumentTitle = "Restaurant Management System";
+                // ✅ جعل واجهة الـ Schemas مغلقة افتراضياً ليكون الشكل أرشق
+                options.DefaultModelsExpandDepth(-1);
             });
 
             return app;

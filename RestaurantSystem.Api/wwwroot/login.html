@@ -1,0 +1,591 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>تسجيل الدخول | نظام المطعم الذكي</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        :root {
+            --bg: #f6f3ee;
+            --card: rgba(255, 255, 255, 0.9);
+            --text: #2d3436;
+            --muted: #7b8794;
+            --primary: #3b2a1f;
+            --primary-2: #6b4423;
+            --accent: #d98f47;
+            --accent-soft: #f5e2cf;
+            --danger: #d63031;
+            --success: #1f9d74;
+            --border: #eadcc9;
+            --shadow: 0 18px 45px rgba(62, 37, 19, 0.12);
+            --radius-xl: 28px;
+            --radius-lg: 18px;
+            --radius-md: 14px;
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            min-height: 100vh;
+            font-family: "Segoe UI", Tahoma, sans-serif;
+            color: var(--text);
+            background: radial-gradient(circle at top right, #f8ead8 0%, transparent 24%), radial-gradient(circle at bottom left, #f0dcc4 0%, transparent 20%), linear-gradient(135deg, #f7f3ed, #f3ede6);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 24px;
+            overflow: hidden;
+        }
+
+        .bg-decor {
+            position: fixed;
+            inset: 0;
+            pointer-events: none;
+            opacity: 0.35;
+        }
+
+            .bg-decor::before,
+            .bg-decor::after {
+                content: "";
+                position: absolute;
+                border-radius: 999px;
+                filter: blur(10px);
+            }
+
+            .bg-decor::before {
+                width: 300px;
+                height: 300px;
+                top: 8%;
+                left: -80px;
+                background: rgba(217, 143, 71, 0.18);
+            }
+
+            .bg-decor::after {
+                width: 360px;
+                height: 360px;
+                bottom: -120px;
+                right: -100px;
+                background: rgba(107, 68, 35, 0.10);
+            }
+
+        .login-shell {
+            width: 100%;
+            max-width: 1100px;
+            display: grid;
+            grid-template-columns: 1.1fr 0.9fr;
+            background: rgba(255,255,255,0.52);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255,255,255,0.55);
+            border-radius: 32px;
+            overflow: hidden;
+            box-shadow: var(--shadow);
+        }
+
+        .login-brand {
+            position: relative;
+            padding: 42px;
+            background: linear-gradient(160deg, rgba(59, 42, 31, 0.94), rgba(107, 68, 35, 0.92)), url('https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?auto=format&fit=crop&w=1200&q=80') center/cover;
+            color: white;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            min-height: 650px;
+        }
+
+        .brand-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+            width: fit-content;
+            background: rgba(255,255,255,0.10);
+            border: 1px solid rgba(255,255,255,0.14);
+            padding: 10px 14px;
+            border-radius: 999px;
+            font-size: 0.92rem;
+            font-weight: 700;
+        }
+
+            .brand-badge i {
+                color: #ffd8aa;
+            }
+
+        .brand-content h1 {
+            margin: 0 0 14px;
+            font-size: 2.3rem;
+            line-height: 1.3;
+        }
+
+        .brand-content p {
+            margin: 0;
+            color: #f3e7da;
+            font-size: 1.02rem;
+            line-height: 1.9;
+            max-width: 520px;
+        }
+
+        .brand-features {
+            display: grid;
+            gap: 14px;
+            margin-top: 28px;
+        }
+
+        .feature {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            background: rgba(255,255,255,0.07);
+            border: 1px solid rgba(255,255,255,0.08);
+            border-radius: 18px;
+            padding: 14px 16px;
+        }
+
+            .feature i {
+                width: 42px;
+                height: 42px;
+                border-radius: 14px;
+                display: grid;
+                place-items: center;
+                background: rgba(255,255,255,0.10);
+                color: #ffd8aa;
+                flex-shrink: 0;
+            }
+
+        .feature-text strong {
+            display: block;
+            margin-bottom: 4px;
+            font-size: 0.95rem;
+        }
+
+        .feature-text span {
+            color: #e7dacc;
+            font-size: 0.86rem;
+        }
+
+        .brand-footer {
+            color: #e8d9ca;
+            font-size: 0.9rem;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .login-panel {
+            background: rgba(255,255,255,0.92);
+            padding: 42px 34px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .login-card {
+            width: 100%;
+            max-width: 420px;
+        }
+
+        .login-top {
+            margin-bottom: 26px;
+        }
+
+            .login-top .tiny {
+                display: inline-block;
+                background: var(--accent-soft);
+                color: #7a4b22;
+                padding: 7px 12px;
+                border-radius: 999px;
+                font-size: 0.82rem;
+                font-weight: 800;
+                margin-bottom: 14px;
+            }
+
+            .login-top h2 {
+                margin: 0 0 10px;
+                font-size: 1.8rem;
+                color: var(--primary);
+            }
+
+            .login-top p {
+                margin: 0;
+                color: var(--muted);
+                line-height: 1.8;
+                font-size: 0.95rem;
+            }
+
+        .alert {
+            display: none;
+            margin-bottom: 16px;
+            border-radius: 14px;
+            padding: 12px 14px;
+            font-weight: 700;
+            font-size: 0.92rem;
+        }
+
+            .alert.error {
+                display: block;
+                background: #fff3f3;
+                color: var(--danger);
+                border: 1px solid #f3c7c7;
+            }
+
+        .form-group {
+            margin-bottom: 16px;
+        }
+
+        .form-label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 800;
+            color: #4b5563;
+            font-size: 0.92rem;
+        }
+
+        .input-wrap {
+            position: relative;
+        }
+
+            .input-wrap i.input-icon {
+                position: absolute;
+                right: 14px;
+                top: 50%;
+                transform: translateY(-50%);
+                color: #a27a56;
+                font-size: 0.95rem;
+            }
+
+            .input-wrap input {
+                width: 100%;
+                padding: 14px 44px 14px 46px;
+                border: 1px solid var(--border);
+                border-radius: 16px;
+                background: #fffdfa;
+                color: var(--text);
+                font-size: 1rem;
+                transition: 0.2s ease;
+            }
+
+                .input-wrap input:focus {
+                    outline: none;
+                    border-color: var(--accent);
+                    box-shadow: 0 0 0 4px rgba(217, 143, 71, 0.12);
+                }
+
+        .toggle-password {
+            position: absolute;
+            left: 12px;
+            top: 50%;
+            transform: translateY(-50%);
+            border: none;
+            background: transparent;
+            color: #8c6b4f;
+            cursor: pointer;
+            font-size: 1rem;
+            padding: 6px;
+        }
+
+        .helper-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 10px;
+            margin-bottom: 18px;
+            flex-wrap: wrap;
+        }
+
+        .remember-me {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            color: var(--muted);
+            font-size: 0.9rem;
+        }
+
+            .remember-me input {
+                width: auto;
+                margin: 0;
+            }
+
+        .login-btn {
+            width: 100%;
+            border: none;
+            border-radius: 16px;
+            padding: 15px 16px;
+            background: linear-gradient(135deg, var(--primary), var(--primary-2));
+            color: white;
+            cursor: pointer;
+            font-size: 1rem;
+            font-weight: 900;
+            transition: 0.2s ease;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            box-shadow: 0 10px 20px rgba(107, 68, 35, 0.18);
+        }
+
+            .login-btn:hover {
+                transform: translateY(-1px);
+                filter: brightness(1.03);
+            }
+
+            .login-btn:disabled {
+                opacity: 0.7;
+                cursor: wait;
+                transform: none;
+            }
+
+        .login-footer {
+            margin-top: 18px;
+            text-align: center;
+            color: var(--muted);
+            font-size: 0.88rem;
+            line-height: 1.8;
+        }
+
+        .quick-hint {
+            margin-top: 18px;
+            padding: 14px;
+            border-radius: 16px;
+            background: #fff8f0;
+            border: 1px solid #eedcc7;
+            color: #7a5a3b;
+            font-size: 0.88rem;
+            line-height: 1.8;
+        }
+
+        @media (max-width: 980px) {
+            .login-shell {
+                grid-template-columns: 1fr;
+            }
+
+            .login-brand {
+                min-height: auto;
+                padding: 28px;
+            }
+
+            .brand-content h1 {
+                font-size: 1.8rem;
+            }
+        }
+
+        @media (max-width: 560px) {
+            body {
+                padding: 12px;
+            }
+
+            .login-panel {
+                padding: 28px 18px;
+            }
+
+            .login-brand {
+                padding: 24px 18px;
+            }
+
+            .login-top h2 {
+                font-size: 1.45rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="bg-decor"></div>
+
+    <div class="login-shell">
+        <section class="login-brand">
+            <div>
+                <div class="brand-badge">
+                    <i class="fas fa-utensils"></i>
+                    <span>Restaurant Operations Platform</span>
+                </div>
+
+                <div class="brand-content" style="margin-top: 24px;">
+                    <h1>إدارة ذكية للمطعم من الطلب إلى المطبخ</h1>
+                    <p>
+                        ادخل إلى لوحة التحكم لمتابعة الطلبات الحية، إدارة المنيو، مراقبة الطاولات،
+                        والتحكم اليومي بالمطعم من واجهة أنيقة وعملية.
+                    </p>
+
+                    <div class="brand-features">
+                        <div class="feature">
+                            <i class="fas fa-bell-concierge"></i>
+                            <div class="feature-text">
+                                <strong>طلبات مباشرة</strong>
+                                <span>تابع الطلبات الجديدة وتحديثات الحالة لحظة بلحظة.</span>
+                            </div>
+                        </div>
+
+                        <div class="feature">
+                            <i class="fas fa-fire-burner"></i>
+                            <div class="feature-text">
+                                <strong>إدارة المطبخ</strong>
+                                <span>تنسيق بين الصالة والمطبخ مع عرض واضح للمهام الجارية.</span>
+                            </div>
+                        </div>
+
+                        <div class="feature">
+                            <i class="fas fa-chair"></i>
+                            <div class="feature-text">
+                                <strong>تحكم بالصالة</strong>
+                                <span>إدارة الطاولات، الـ QR، والحجوزات بسهولة ومن مكان واحد.</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="brand-footer">
+                <i class="fas fa-shield-heart"></i>
+                <span>واجهة تشغيل داخلية آمنة للطاقم والإدارة</span>
+            </div>
+        </section>
+
+        <section class="login-panel">
+            <div class="login-card">
+                <div class="login-top">
+                    <span class="tiny">🔐 دخول الموظفين والإدارة</span>
+                    <h2>أهلاً بك من جديد</h2>
+                    <p>سجل الدخول باستخدام البريد الإلكتروني وكلمة المرور للوصول إلى لوحة التحكم.</p>
+                </div>
+
+                <div id="errorMsg" class="alert"></div>
+
+                <div class="form-group">
+                    <label class="form-label" for="email">البريد الإلكتروني</label>
+                    <div class="input-wrap">
+                        <i class="fas fa-envelope input-icon"></i>
+                        <input type="email" id="email" placeholder="admin@restaurant.com" autocomplete="username">
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label" for="password">كلمة المرور</label>
+                    <div class="input-wrap">
+                        <i class="fas fa-lock input-icon"></i>
+                        <input type="password" id="password" placeholder="أدخل كلمة المرور" autocomplete="current-password">
+                        <button type="button" class="toggle-password" onclick="togglePassword()">
+                            <i id="togglePasswordIcon" class="fas fa-eye"></i>
+                        </button>
+                    </div>
+                </div>
+
+                <div class="helper-row">
+                    <label class="remember-me">
+                        <input type="checkbox" id="rememberMe" checked>
+                        <span>تذكر الجلسة على هذا الجهاز</span>
+                    </label>
+                </div>
+
+                <button id="loginBtn" class="login-btn" onclick="handleLogin()">
+                    <i class="fas fa-arrow-left"></i>
+                    <span id="loginBtnText">دخول إلى النظام</span>
+                </button>
+
+                <div class="quick-hint">
+                    <strong>ملاحظة:</strong>
+                    تأكد أن الـ Backend يعمل، وأن بيانات الدخول تخص حسابًا مخولًا داخل نظام المطعم.
+                </div>
+
+                <div class="login-footer">
+                    نظام المطعم الذكي — واجهة تشغيل للإدارة، الصالة، والمطبخ
+                </div>
+            </div>
+        </section>
+    </div>
+
+    <script>
+        const API_URL = window.location.origin;
+
+        document.addEventListener('keypress', function (e) {
+            if (e.key === 'Enter') {
+                handleLogin();
+            }
+        });
+
+        function setLoading(isLoading) {
+            const btn = document.getElementById("loginBtn");
+            const btnText = document.getElementById("loginBtnText");
+
+            btn.disabled = isLoading;
+            btnText.innerText = isLoading ? "جاري تسجيل الدخول..." : "دخول إلى النظام";
+        }
+
+        function showError(message) {
+            const errorDiv = document.getElementById("errorMsg");
+            errorDiv.className = "alert error";
+            errorDiv.textContent = message;
+        }
+
+        function clearError() {
+            const errorDiv = document.getElementById("errorMsg");
+            errorDiv.className = "alert";
+            errorDiv.textContent = "";
+        }
+
+        function togglePassword() {
+            const input = document.getElementById("password");
+            const icon = document.getElementById("togglePasswordIcon");
+
+            if (input.type === "password") {
+                input.type = "text";
+                icon.className = "fas fa-eye-slash";
+            } else {
+                input.type = "password";
+                icon.className = "fas fa-eye";
+            }
+        }
+
+        async function handleLogin() {
+            const email = document.getElementById("email").value.trim();
+            const password = document.getElementById("password").value;
+            const rememberMe = document.getElementById("rememberMe").checked;
+
+            clearError();
+
+            if (!email || !password) {
+                showError("يرجى إدخال البريد الإلكتروني وكلمة المرور.");
+                return;
+            }
+
+            setLoading(true);
+
+            try {
+                const response = await fetch(`${API_URL}/api/v1/Auth/login`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ email, password })
+                });
+
+                const result = await response.json();
+
+                if (response.ok && result.success && result.data?.token) {
+                    if (rememberMe) {
+                        localStorage.setItem("authToken", result.data.token);
+                    } else {
+                        sessionStorage.setItem("authToken", result.data.token);
+                    }
+
+                    localStorage.removeItem("authToken");
+                    const savedToken = rememberMe ? result.data.token : null;
+
+                    if (savedToken) {
+                        localStorage.setItem("authToken", savedToken);
+                    } else {
+                        localStorage.setItem("authToken", sessionStorage.getItem("authToken") || "");
+                    }
+
+                    window.location.href = "Dashboard.html";
+                } else {
+                    showError(result.message || "فشل تسجيل الدخول. تحقق من البيانات المدخلة.");
+                }
+            } catch (err) {
+                console.error(err);
+                showError("تعذر الاتصال بالسيرفر. تأكد أن الـ Backend يعمل بشكل صحيح.");
+            } finally {
+                setLoading(false);
+            }
+        }
+    </script>
+</body>
+</html>

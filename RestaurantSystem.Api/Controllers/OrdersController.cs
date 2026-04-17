@@ -1,17 +1,17 @@
 ﻿using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
+using System;
+using System.Collections.Generic;
+using System.Linq;
 using System.Security.Claims;
+using System.Threading.Tasks;
 using RestaurantSystem.Api.Common;
 using RestaurantSystem.Application.DTOs.Orders;
 using RestaurantSystem.Application.Services.Interfaces;
 
 namespace RestaurantSystem.Api.Controllers
 {
-    /// <summary>
-    /// إدارة الطلبات
-    /// </summary>
     [ApiController]
     [Route("api/v1/[controller]")]
     [Produces("application/json")]
@@ -21,335 +21,145 @@ namespace RestaurantSystem.Api.Controllers
         private readonly IOrderService _orderService;
         private readonly ILogger<OrdersController> _logger;
 
-        public OrdersController(
-            IOrderService orderService,
-            ILogger<OrdersController> logger)
+        public OrdersController(IOrderService orderService, ILogger<OrdersController> logger)
         {
             _orderService = orderService;
             _logger = logger;
         }
 
-        // ──────────────────────────────────────────
-        // GET /api/v1/orders
-        // ──────────────────────────────────────────
-        /// <summary>
-        /// جلب جميع الطلبات — للمدير والمدير فقط
-        /// </summary>
-        [Authorize(Roles = "Admin,Manager")]
+        // 1. جلب كل الطلبات
+        // تم السماح للكاشير والويتر حتى يقدرون يعرضون الطلبات في الواجهة
+        [Authorize(Roles = "Admin,Manager,Cashier,Waiter")]
         [HttpGet]
-        [ProducesResponseType(typeof(ApiResponse<IEnumerable<OrderResponseDto>>), StatusCodes.Status200OK)]
-        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status401Unauthorized)]
-        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status403Forbidden)]
         public async Task<ActionResult<ApiResponse<IEnumerable<OrderResponseDto>>>> GetAllOrders()
         {
-            _logger.LogInformation("Fetching all orders");
             var orders = await _orderService.GetAllOrdersAsync();
             return Ok(ApiResponse<IEnumerable<OrderResponseDto>>.Ok(orders));
         }
 
-        // ──────────────────────────────────────────
-        // GET /api/v1/orders/pending
-        // ──────────────────────────────────────────
-        /// <summary>
-        /// جلب الطلبات المعلقة فقط
-        /// </summary>
-        [Authorize(Roles = "Admin,Manager,Staff")]
-        [HttpGet("pending")]
-        [ProducesResponseType(typeof(ApiResponse<IEnumerable<OrderResponseDto>>), StatusCodes.Status200OK)]
-        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status401Unauthorized)]
-        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status403Forbidden)]
-        public async Task<ActionResult<ApiResponse<IEnumerable<OrderResponseDto>>>> GetPendingOrders()
-        {
-            _logger.LogInformation("Fetching pending orders");
-            var orders = await _orderService.GetPendingOrdersAsync();
-            return Ok(ApiResponse<IEnumerable<OrderResponseDto>>.Ok(orders));
-        }
-
-        // ──────────────────────────────────────────
-        // GET /api/v1/orders/{id}
-        // ──────────────────────────────────────────
-        /// <summary>
-        /// جلب طلب محدد بالـ ID
-        /// </summary>
+        // 2. جلب تفاصيل طلب بالـ GUID
         [Authorize]
         [HttpGet("{id:guid}")]
-        [ProducesResponseType(typeof(ApiResponse<OrderResponseDto>), StatusCodes.Status200OK)]
-        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
-        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
-        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status401Unauthorized)]
-        public async Task<ActionResult<ApiResponse<OrderResponseDto>>> GetOrder(Guid id)
+        public async Task<ActionResult<ApiResponse<OrderResponseDto>>> GetOrderById(Guid id)
         {
-            if (id == Guid.Empty)
-            {
-                _logger.LogWarning("GetOrder called with empty ID");
-                return BadRequest(ApiResponse<OrderResponseDto>.Fail("معرف الطلب غير صحيح"));
-            }
-
-            _logger.LogInformation("Fetching order: {OrderId}", id);
             var order = await _orderService.GetOrderByIdAsync(id);
+            if (order == null)
+                return NotFound(ApiResponse<OrderResponseDto>.Fail("الطلب غير موجود"));
+
             return Ok(ApiResponse<OrderResponseDto>.Ok(order));
         }
 
-        // ──────────────────────────────────────────
-        // GET /api/v1/orders/user/{userId}
-        // ──────────────────────────────────────────
-        /// <summary>
-        /// جلب طلبات مستخدم معين
-        /// </summary>
+        // 3. البحث برقم الطلب البسيط
+        [Authorize]
+        [HttpGet("number/{orderNumber:int}")]
+        public async Task<ActionResult<ApiResponse<OrderResponseDto>>> GetOrderByNumber(int orderNumber)
+        {
+            var order = await _orderService.GetOrderByOrderNumberAsync(orderNumber);
+            if (order == null)
+                return NotFound(ApiResponse<OrderResponseDto>.Fail($"الطلب رقم {orderNumber} غير موجود"));
+
+            return Ok(ApiResponse<OrderResponseDto>.Ok(order));
+        }
+
+        // 4. جلب طلبات مستخدم معين
         [Authorize]
         [HttpGet("user/{userId}")]
-        [ProducesResponseType(typeof(ApiResponse<IEnumerable<OrderResponseDto>>), StatusCodes.Status200OK)]
-        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
-        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status401Unauthorized)]
-        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status403Forbidden)]
-        public async Task<ActionResult<ApiResponse<IEnumerable<OrderResponseDto>>>> GetOrdersByUser(
-            string userId)
+        public async Task<ActionResult<ApiResponse<IEnumerable<OrderResponseDto>>>> GetUserOrders(string userId)
         {
-            // ✅ المستخدم العادي يشوف طلباته فقط — المدير يشوف أي مستخدم
-            var currentUserId = User.FindFirstValue(ClaimTypes.NameIdentifier);
-            var currentRole = User.FindFirstValue(ClaimTypes.Role);
-
-            var isAdminOrManager = currentRole is "Admin" or "Manager";
-
-            if (!isAdminOrManager && currentUserId != userId)
-            {
-                _logger.LogWarning(
-                    "User {CurrentUser} tried to access orders of {TargetUser}",
-                    currentUserId, userId);
-                return StatusCode(StatusCodes.Status403Forbidden,
-                    ApiResponse<object>.Fail("ليس لديك صلاحية لعرض طلبات مستخدم آخر"));
-            }
-
-            _logger.LogInformation("Fetching orders for user: {UserId}", userId);
             var orders = await _orderService.GetOrdersByUserIdAsync(userId);
             return Ok(ApiResponse<IEnumerable<OrderResponseDto>>.Ok(orders));
         }
 
-        // ──────────────────────────────────────────
-        // GET /api/v1/orders/table/{tableId}
-        // ──────────────────────────────────────────
-        /// <summary>
-        /// جلب طلبات طاولة معينة
-        /// </summary>
-        [Authorize(Roles = "Admin,Manager,Staff")]
-        [HttpGet("table/{tableId:guid}")]
-        [ProducesResponseType(typeof(ApiResponse<IEnumerable<OrderResponseDto>>), StatusCodes.Status200OK)]
-        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
-        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status401Unauthorized)]
-        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status403Forbidden)]
-        public async Task<ActionResult<ApiResponse<IEnumerable<OrderResponseDto>>>> GetOrdersByTable(
-            Guid tableId)
-        {
-            if (tableId == Guid.Empty)
-            {
-                _logger.LogWarning("GetOrdersByTable called with empty tableId");
-                return BadRequest(ApiResponse<IEnumerable<OrderResponseDto>>.Fail("معرف الطاولة غير صحيح"));
-            }
-
-            _logger.LogInformation("Fetching orders for table: {TableId}", tableId);
-            var orders = await _orderService.GetOrdersByTableIdAsync(tableId);
-            return Ok(ApiResponse<IEnumerable<OrderResponseDto>>.Ok(orders));
-        }
-
-        // ──────────────────────────────────────────
-        // POST /api/v1/orders
-        // ──────────────────────────────────────────
-        /// <summary>
-        /// إنشاء طلب جديد
-        /// </summary>
+        // 5. إنشاء طلب جديد
         [Authorize]
         [HttpPost]
-        [ProducesResponseType(typeof(ApiResponse<OrderResponseDto>), StatusCodes.Status200OK)]
-        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
-        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status401Unauthorized)]
-        public async Task<ActionResult<ApiResponse<OrderResponseDto>>> CreateOrder(
-            [FromBody] CreateOrderRequestDto request)
+        public async Task<ActionResult<ApiResponse<OrderResponseDto>>> CreateOrder([FromBody] CreateOrderRequestDto request)
         {
-            if (request == null)
-            {
-                _logger.LogWarning("CreateOrder called with null request");
-                return BadRequest(ApiResponse<OrderResponseDto>.Fail("البيانات مطلوبة"));
-            }
-
-            // ✅ نأخذ الـ UserId من الـ JWT Token مباشرة — أأمن من أن يرسله العميل
             var userIdClaim = User.FindFirstValue(ClaimTypes.NameIdentifier);
             if (Guid.TryParse(userIdClaim, out Guid userId))
-            {
                 request.UserId = userId;
+
+            try
+            {
+                var result = await _orderService.CreateOrderAsync(request);
+
+                return CreatedAtAction(
+                    nameof(GetOrderById),
+                    new { id = result.Id },
+                    ApiResponse<OrderResponseDto>.Ok(result, "تم إنشاء الطلب بنجاح"));
             }
-
-            // ✅ تم التغيير من request.Type إلى request.OrderType
-            _logger.LogInformation("Creating order for user: {UserId}, Type: {OrderType}", request.UserId, request.OrderType);
-
-            var result = await _orderService.CreateOrderAsync(request);
-
-            _logger.LogInformation("Order created: {OrderId}", result.Id);
-            return Ok(ApiResponse<OrderResponseDto>.Ok(result, "تم إنشاء الطلب بنجاح"));
+            catch (Exception ex)
+            {
+                return BadRequest(ApiResponse<OrderResponseDto>.Fail(ex.Message));
+            }
         }
 
-        // ──────────────────────────────────────────
-        // PATCH /api/v1/orders/{id}/status
-        // ──────────────────────────────────────────
-        /// <summary>
-        /// تحديث حالة طلب معين
-        /// </summary>
-        [Authorize(Roles = "Admin,Manager,Staff")]
+        // 6. تحديث الحالة
+        [Authorize(Roles = "Admin,Manager,Staff,Cashier,Waiter")]
         [HttpPatch("{id:guid}/status")]
-        [ProducesResponseType(typeof(ApiResponse<OrderResponseDto>), StatusCodes.Status200OK)]
-        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
-        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status401Unauthorized)]
-        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status403Forbidden)]
-        public async Task<ActionResult<ApiResponse<OrderResponseDto>>> UpdateOrderStatus(
-            Guid id,
-            [FromBody] UpdateOrderStatusRequestDto request)
+        public async Task<ActionResult<ApiResponse<OrderResponseDto>>> UpdateOrderStatus(Guid id, [FromBody] UpdateOrderStatusRequestDto request)
         {
-            if (id == Guid.Empty)
+            try
             {
-                _logger.LogWarning("UpdateOrderStatus called with empty ID");
-                return BadRequest(ApiResponse<OrderResponseDto>.Fail("معرف الطلب غير صحيح"));
+                var result = await _orderService.UpdateOrderStatusAsync(id, request);
+                return Ok(ApiResponse<OrderResponseDto>.Ok(result, "تم تحديث الحالة بنجاح"));
             }
-
-            if (request == null)
+            catch (Exception ex)
             {
-                _logger.LogWarning("UpdateOrderStatus called with null request");
-                return BadRequest(ApiResponse<OrderResponseDto>.Fail("البيانات مطلوبة"));
+                return BadRequest(ApiResponse<OrderResponseDto>.Fail(ex.Message));
             }
-
-            // ✅ نضع الـ ID من الـ URL في الـ request دائماً
-            request.OrderId = id;
-
-            _logger.LogInformation(
-                "Updating order {OrderId} status to {NewStatus}",
-                id, request.NewStatus);
-
-            var result = await _orderService.UpdateOrderStatusAsync(id, request);
-
-            _logger.LogInformation("Order status updated: {OrderId}", id);
-            return Ok(ApiResponse<OrderResponseDto>.Ok(result, "تم تحديث حالة الطلب بنجاح"));
         }
 
-        // ──────────────────────────────────────────
-        // PUT /api/v1/orders/{id}
-        // ──────────────────────────────────────────
-        /// <summary>
-        /// تعديل طلب كامل
-        /// </summary>
+        // 7. إرسال الطلب لشركة التوصيل يدوياً
         [Authorize(Roles = "Admin,Manager")]
-        [HttpPut("{id:guid}")]
-        [ProducesResponseType(typeof(ApiResponse<OrderResponseDto>), StatusCodes.Status200OK)]
-        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
-        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status401Unauthorized)]
-        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status403Forbidden)]
-        public async Task<ActionResult<ApiResponse<OrderResponseDto>>> UpdateOrder(
-            Guid id,
-            [FromBody] CreateOrderRequestDto request)
+        [HttpPost("{id:guid}/push-external")]
+        public async Task<ActionResult<ApiResponse<bool>>> PushToDelivery(Guid id)
         {
-            if (id == Guid.Empty)
-            {
-                _logger.LogWarning("UpdateOrder called with empty ID");
-                return BadRequest(ApiResponse<OrderResponseDto>.Fail("معرف الطلب غير صحيح"));
-            }
+            var success = await _orderService.PushOrderToExternalDeliveryAsync(id);
+            if (!success)
+                return BadRequest(ApiResponse<bool>.Fail("فشل إرسال الطلب، تأكد من صحة العنوان أو المحاولة لاحقاً"));
 
-            if (request == null)
-            {
-                _logger.LogWarning("UpdateOrder called with null request");
-                return BadRequest(ApiResponse<OrderResponseDto>.Fail("البيانات مطلوبة"));
-            }
-
-            _logger.LogInformation("Updating order: {OrderId}", id);
-            var result = await _orderService.UpdateOrderAsync(id, request);
-
-            _logger.LogInformation("Order updated: {OrderId}", id);
-            return Ok(ApiResponse<OrderResponseDto>.Ok(result, "تم تعديل الطلب بنجاح"));
+            return Ok(ApiResponse<bool>.Ok(true, "تم إرسال الطلب لشركة التوصيل بنجاح"));
         }
 
-        // ──────────────────────────────────────────
-        // POST /api/v1/orders/{id}/cancel
-        // ──────────────────────────────────────────
-        /// <summary>
-        /// إلغاء طلب — فقط لو حالته Pending
-        /// </summary>
+        // 8. مزامنة فورية لحالة التوصيل
+        [Authorize]
+        [HttpPost("{id:guid}/sync-delivery")]
+        public async Task<ActionResult<ApiResponse<OrderResponseDto>>> SyncDeliveryStatus(Guid id)
+        {
+            var result = await _orderService.SyncExternalStatusAsync(id);
+            return Ok(ApiResponse<OrderResponseDto>.Ok(result, "تمت مزامنة البيانات مع شركة التوصيل"));
+        }
+
+        // 9. إلغاء الطلب
         [Authorize]
         [HttpPost("{id:guid}/cancel")]
-        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status200OK)]
-        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
-        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status401Unauthorized)]
         public async Task<ActionResult<ApiResponse<object>>> CancelOrder(Guid id)
         {
-            if (id == Guid.Empty)
-            {
-                _logger.LogWarning("CancelOrder called with empty ID");
-                return BadRequest(ApiResponse<object>.Fail("معرف الطلب غير صحيح"));
-            }
-
-            _logger.LogInformation("Cancelling order: {OrderId}", id);
             var result = await _orderService.CancelOrderAsync(id);
-
-            if (!result)
-            {
-                _logger.LogWarning("Cancel failed for order: {OrderId}", id);
-                return BadRequest(ApiResponse<object>.Fail("لا يمكن إلغاء الطلب"));
-            }
-
-            _logger.LogInformation("Order cancelled: {OrderId}", id);
-            return Ok(ApiResponse<object>.Ok("تم إلغاء الطلب بنجاح"));
+            return result
+                ? Ok(ApiResponse<object>.Ok(null, "تم إلغاء الطلب"))
+                : BadRequest(ApiResponse<object>.Fail("لا يمكن إلغاء الطلب في حالته الحالية"));
         }
 
-        // ──────────────────────────────────────────
-        // DELETE /api/v1/orders/{id}
-        // ──────────────────────────────────────────
-        /// <summary>
-        /// حذف طلب — للمدير فقط
-        /// </summary>
-        [Authorize(Roles = "Admin")]
-        [HttpDelete("{id:guid}")]
-        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status200OK)]
-        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
-        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status401Unauthorized)]
-        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status403Forbidden)]
-        public async Task<ActionResult<ApiResponse<object>>> DeleteOrder(Guid id)
+        // 10. إحصائيات لوحة التحكم
+        [Authorize(Roles = "Admin,Manager")]
+        [HttpGet("stats")]
+        public async Task<ActionResult<ApiResponse<object>>> GetOrderStats()
         {
-            if (id == Guid.Empty)
+            var allOrders = await _orderService.GetAllOrdersAsync();
+            var stats = new
             {
-                _logger.LogWarning("DeleteOrder called with empty ID");
-                return BadRequest(ApiResponse<object>.Fail("معرف الطلب غير صحيح"));
-            }
+                Total = allOrders.Count(),
+                TodayRevenue = allOrders
+                    .Where(o => o.CreatedAt.Date == DateTime.UtcNow.Date && o.Status == "Completed")
+                    .Sum(o => o.TotalAmount),
+                ByStatus = allOrders
+                    .GroupBy(o => o.Status)
+                    .ToDictionary(g => g.Key, g => g.Count())
+            };
 
-            _logger.LogInformation("Deleting order: {OrderId}", id);
-            var result = await _orderService.DeleteOrderAsync(id);
-
-            if (!result)
-            {
-                _logger.LogWarning("Delete failed for order: {OrderId}", id);
-                return BadRequest(ApiResponse<object>.Fail("الطلب غير موجود"));
-            }
-
-            _logger.LogInformation("Order deleted: {OrderId}", id);
-            return Ok(ApiResponse<object>.Ok("تم حذف الطلب بنجاح"));
-        }
-
-        // ──────────────────────────────────────────
-        // GET /api/v1/orders/{id}/total
-        // ──────────────────────────────────────────
-        /// <summary>
-        /// حساب المجموع الكلي للطلب
-        /// </summary>
-        [Authorize]
-        [HttpGet("{id:guid}/total")]
-        [ProducesResponseType(typeof(ApiResponse<decimal>), StatusCodes.Status200OK)]
-        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
-        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status401Unauthorized)]
-        public async Task<ActionResult<ApiResponse<decimal>>> GetOrderTotal(Guid id)
-        {
-            if (id == Guid.Empty)
-            {
-                _logger.LogWarning("GetOrderTotal called with empty ID");
-                return BadRequest(ApiResponse<decimal>.Fail("معرف الطلب غير صحيح"));
-            }
-
-            _logger.LogInformation("Calculating total for order: {OrderId}", id);
-            var total = await _orderService.CalculateOrderTotalAsync(id);
-            return Ok(ApiResponse<decimal>.Ok(total));
+            return Ok(ApiResponse<object>.Ok(stats));
         }
     }
 }

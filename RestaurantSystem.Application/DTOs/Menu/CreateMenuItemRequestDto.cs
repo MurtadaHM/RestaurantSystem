@@ -3,7 +3,7 @@
 namespace RestaurantSystem.Application.DTOs.Menu
 {
     /// <summary>
-    /// DTO لإنشاء منتج جديد
+    /// DTO لإنشاء منتج جديد في المنيو
     /// </summary>
     public class CreateMenuItemRequestDto
     {
@@ -11,23 +11,25 @@ namespace RestaurantSystem.Application.DTOs.Menu
         [MaxLength(200, ErrorMessage = "اسم المنتج لا يمكن أن يتجاوز 200 حرف")]
         public string Name { get; set; } = default!;
 
-        [MaxLength(1000, ErrorMessage = "وصف المنتج لا يمكن أن يتجاوز 1000 حرف")]
-        public string Description { get; set; } = default!;
-
-        [Required(ErrorMessage = "معرّف الفئة مطلوب")]
-        public Guid CategoryId { get; set; }
+        [MaxLength(1000, ErrorMessage = "الوصف لا يمكن أن يتجاوز 1000 حرف")]
+        public string? Description { get; set; }
 
         [Required(ErrorMessage = "السعر مطلوب")]
-        [Range(0.01, double.MaxValue, ErrorMessage = "السعر يجب أن يكون أكبر من 0")]
+        [Range(0, double.MaxValue, ErrorMessage = "السعر يجب أن يكون قيمة موجبة")]
         public decimal Price { get; set; }
 
-        [Url(ErrorMessage = "رابط الصورة غير صحيح")]
-        public string ImageUrl { get; set; } = default!;
+        [Required(ErrorMessage = "يجب اختيار القسم التشغيلي (مكان التحضير)")]
+        public Guid DepartmentId { get; set; }
 
-        [MaxLength(500, ErrorMessage = "المكونات لا يمكن أن تتجاوز 500 حرف")]
-        public string Ingredients { get; set; } = default!;
+        [Required(ErrorMessage = "يجب اختيار الفئة التابع لها المنتج")]
+        public Guid CategoryId { get; set; }
 
-        [Range(1, 1000, ErrorMessage = "وقت التحضير يجب أن يكون بين 1 و 1000 دقيقة")]
+        // ✅ nullable لتجنب مشاكل الـ Validation أثناء التطوير
+        public string? ImageUrl { get; set; }
+
+        public string? Ingredients { get; set; }
+
+        [Range(1, 120, ErrorMessage = "وقت التحضير يجب أن يكون بين دقيقة وساعتين")]
         public int PreparationTimeMinutes { get; set; } = 15;
 
         public bool IsAvailable { get; set; } = true;

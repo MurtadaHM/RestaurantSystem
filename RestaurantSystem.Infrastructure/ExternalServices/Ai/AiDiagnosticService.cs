@@ -8,7 +8,7 @@ using System.Net.Http.Headers;
 using System.Text;
 using System.Text.Json;
 
-namespace RestaurantSystem.Infrastructure.ExternalServices  // ✅ تأكد من هذا
+namespace RestaurantSystem.Infrastructure.ExternalServices.Ai  // ✅ تأكد من هذا
 {
     public class AiDiagnosticService : IAiDiagnosticService
     {

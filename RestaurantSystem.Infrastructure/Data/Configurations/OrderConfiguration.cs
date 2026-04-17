@@ -2,6 +2,7 @@
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 using RestaurantSystem.Domain.Entities;
 using RestaurantSystem.Domain.Enums;
+using System;
 
 namespace RestaurantSystem.Infrastructure.Data.Configurations
 {
@@ -9,99 +10,109 @@ namespace RestaurantSystem.Infrastructure.Data.Configurations
     {
         public void Configure(EntityTypeBuilder<Order> builder)
         {
-            // ──────────────────────────────────────────
-            // Table
-            // ──────────────────────────────────────────
             builder.ToTable("Orders");
 
-            // ──────────────────────────────────────────
-            // Primary Key
-            // ──────────────────────────────────────────
+            // 1. المفتاح الأساسي
             builder.HasKey(o => o.Id);
+            builder.Property(o => o.Id).HasColumnType("uuid");
 
-            // ──────────────────────────────────────────
-            // Properties
-            // ──────────────────────────────────────────
+            // 2. الحالات (Enums) -> تحويلها لنصوص لسهولة القراءة في DB
             builder.Property(o => o.Status)
                 .IsRequired()
-                .HasConversion<string>()              // ✅ Enum → string
-                .HasColumnType("text")
-                .HasDefaultValue(OrderStatus.Pending);
+                .HasConversion<string>()
+                .HasColumnType("text");
 
             builder.Property(o => o.OrderType)
                 .IsRequired()
-                .HasConversion<string>()              // ✅ Enum → string
+                .HasConversion<string>()
                 .HasColumnType("text");
+
+            builder.Property(o => o.ExternalDeliveryStatus)
+                .IsRequired()
+                .HasConversion<string>()
+                .HasColumnType("text");
+
+            // 3. الخصائص الأساسية
+            builder.Property(o => o.OrderNumber)
+                .IsRequired();
 
             builder.Property(o => o.TotalAmount)
                 .IsRequired()
-                .HasColumnType("decimal(18,2)");
+                .HasColumnType("numeric(18,2)");
 
             builder.Property(o => o.DeliveryFee)
-                .IsRequired(false)                    // ✅ decimal? nullable
-                .HasColumnType("decimal(18,2)");
+                .HasColumnType("numeric(18,2)");
 
             builder.Property(o => o.SpecialNotes)
-                .IsRequired(false)
-                .HasMaxLength(500)
-                .HasColumnType("character varying(500)");
+                .HasMaxLength(500);
 
-            builder.Property(o => o.ExpectedReadyTime)
-                .IsRequired(false)                    // ✅ DateTime? nullable
-                .HasColumnType("timestamp with time zone");
+            // 4. 🆕 حقول التكامل مع شركة التوصيل (Sendy) والإحداثيات
+            builder.Property(o => o.ExternalOrderId)
+                .HasColumnType("uuid");
 
-            builder.Property(o => o.CompletedAt)
-                .IsRequired(false)                    // ✅ DateTime? nullable
-                .HasColumnType("timestamp with time zone");
+            builder.Property(o => o.CustomerPhoneNumber)
+                .HasMaxLength(20);
 
-            builder.Property(o => o.IsDeleted)
+            builder.Property(o => o.DeliveryAddress)
+                .HasMaxLength(1000);
+
+            // 📍 الإحداثيات الجغرافية
+            builder.Property(o => o.Latitude)
+                .HasColumnType("double precision"); // Postgres type for double
+
+            builder.Property(o => o.Longitude)
+                .HasColumnType("double precision");
+
+            // 👤 بيانات السائق
+            builder.Property(o => o.CourierName)
+                .HasMaxLength(200);
+
+            builder.Property(o => o.CourierPhoneNumber)
+                .HasMaxLength(20);
+
+            builder.Property(o => o.IsSyncedToExternalProvider)
                 .HasColumnType("boolean");
 
+            // 5. التواقيت (Postgres timestamptz)
             builder.Property(o => o.CreatedAt)
                 .IsRequired()
                 .HasColumnType("timestamp with time zone");
 
             builder.Property(o => o.UpdatedAt)
-                .HasColumnType("timestamp with time zone");  // ✅ nullable
+                .HasColumnType("timestamp with time zone");
 
             builder.Property(o => o.DeletedAt)
-                .HasColumnType("timestamp with time zone");  // ✅ nullable
+                .HasColumnType("timestamp with time zone");
 
-            // ──────────────────────────────────────────
-            // Indexes
-            // ──────────────────────────────────────────
-            builder.HasIndex(o => o.UserId)
-                .HasDatabaseName("IX_Orders_UserId");
+            builder.Property(o => o.ExpectedReadyTime)
+                .HasColumnType("timestamp with time zone");
 
-            builder.HasIndex(o => o.TableId)
-                .HasDatabaseName("IX_Orders_TableId");
+            builder.Property(o => o.CompletedAt)
+                .HasColumnType("timestamp with time zone");
 
-            builder.HasIndex(o => o.Status)
-                .HasDatabaseName("IX_Orders_Status");
+            builder.Property(o => o.LastExternalSyncDate)
+                .HasColumnType("timestamp with time zone");
 
-            // ──────────────────────────────────────────
-            // Relationships
-            // ──────────────────────────────────────────
+            // 6. الفهارس (Indexes) - حاسمة للأداء
+            builder.HasIndex(o => o.UserId).HasDatabaseName("IX_Orders_UserId");
+            builder.HasIndex(o => o.Status).HasDatabaseName("IX_Orders_Status");
 
-            // ✅ Order → User (Many-to-One)
+            // 🔥 فهرس المعرف الخارجي (مهم جداً لسرعة استجابة الـ Webhook)
+            builder.HasIndex(o => o.ExternalOrderId)
+                .HasDatabaseName("IX_Orders_ExternalOrderId");
+
+            // 7. العلاقات
             builder.HasOne(o => o.User)
                 .WithMany(u => u.Orders)
                 .HasForeignKey(o => o.UserId)
-                .OnDelete(DeleteBehavior.Restrict);   // ✅ نمنع حذف User لو عنده Orders
+                .OnDelete(DeleteBehavior.Restrict);
 
-            // ✅ Order → Table (Many-to-One) Optional
             builder.HasOne(o => o.Table)
                 .WithMany(t => t.Orders)
                 .HasForeignKey(o => o.TableId)
-                .OnDelete(DeleteBehavior.SetNull)     // ✅ لو حذفنا Table نجعل TableId = null
-                .IsRequired(false);
+                .OnDelete(DeleteBehavior.SetNull);
 
-            // ✅ Order → Payment (One-to-One)  — configured from Payment side
-            // ✅ Order → OrderItems (One-to-Many) — configured from OrderItem side
-
-            // ──────────────────────────────────────────
-            // Soft Delete Filter
-            // ──────────────────────────────────────────
+            // فلتر الحذف الناعم
             builder.HasQueryFilter(o => !o.IsDeleted);
         }
     }

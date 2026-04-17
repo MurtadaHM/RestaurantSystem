@@ -1,0 +1,611 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Restaurant System | Dashboard</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        :root {
+            --sidebar-width: 305px;
+            --sidebar-collapsed: 96px;
+            --bg: #f6f3ee;
+            --card: #ffffff;
+            --card-soft: #fffaf4;
+            --text: #2d3436;
+            --muted: #7b8794;
+            --primary: #3b2a1f;
+            --primary-2: #6b4423;
+            --accent: #d98f47;
+            --accent-soft: #f7e6d4;
+            --danger: #d63031;
+            --success: #1f9d74;
+            --border: #e9dccd;
+            --shadow: 0 12px 35px rgba(62, 37, 19, 0.10);
+            --radius-xl: 24px;
+            --radius-lg: 18px;
+            --radius-md: 14px;
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            height: 100vh;
+            display: flex;
+            overflow: hidden;
+            font-family: "Segoe UI", Tahoma, sans-serif;
+            color: var(--text);
+            background: radial-gradient(circle at top right, #f8ead8 0%, transparent 24%), radial-gradient(circle at top left, #f1dcc3 0%, transparent 18%), var(--bg);
+        }
+
+        .app-shell {
+            width: 100%;
+            display: grid;
+            grid-template-columns: var(--sidebar-width) 1fr;
+            transition: grid-template-columns .25s ease;
+        }
+
+            .app-shell.collapsed {
+                grid-template-columns: var(--sidebar-collapsed) 1fr;
+            }
+
+        .sidebar {
+            background: linear-gradient(180deg, #241912 0%, #3b2a1f 45%, #4e3524 100%);
+            color: white;
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
+            border-left: 1px solid rgba(255,255,255,0.04);
+            box-shadow: var(--shadow);
+            z-index: 10;
+        }
+
+        .sidebar-top {
+            padding: 22px 18px 14px;
+            border-bottom: 1px solid rgba(255,255,255,0.07);
+        }
+
+        .brand {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+        }
+
+        .brand-icon {
+            width: 56px;
+            height: 56px;
+            border-radius: 18px;
+            display: grid;
+            place-items: center;
+            background: rgba(255,255,255,0.10);
+            color: #ffd8aa;
+            font-size: 1.4rem;
+            flex-shrink: 0;
+        }
+
+        .brand-text h1 {
+            margin: 0;
+            font-size: 1.08rem;
+            letter-spacing: .3px;
+        }
+
+        .brand-text p {
+            margin: 6px 0 0;
+            color: #d8c7b6;
+            font-size: 0.84rem;
+        }
+
+        .collapse-btn {
+            margin-top: 16px;
+            width: 100%;
+            border: 1px solid rgba(255,255,255,0.12);
+            background: rgba(255,255,255,0.05);
+            color: white;
+            padding: 10px 12px;
+            border-radius: 12px;
+            cursor: pointer;
+            font-weight: 700;
+            transition: .2s ease;
+        }
+
+            .collapse-btn:hover {
+                background: rgba(255,255,255,0.10);
+            }
+
+        .profile-box {
+            margin: 16px 0 0;
+            background: rgba(255,255,255,0.06);
+            border: 1px solid rgba(255,255,255,0.08);
+            border-radius: 18px;
+            padding: 14px;
+        }
+
+        .profile-name {
+            font-weight: 800;
+            font-size: 0.98rem;
+            margin-bottom: 4px;
+        }
+
+        .profile-role {
+            color: #d8c7b6;
+            font-size: 0.84rem;
+            margin-bottom: 8px;
+        }
+
+        .profile-status {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 6px 10px;
+            border-radius: 999px;
+            background: rgba(31, 157, 116, 0.15);
+            color: #bff3df;
+            font-size: 0.78rem;
+            font-weight: 700;
+        }
+
+        .nav-links {
+            flex: 1;
+            overflow-y: auto;
+            padding: 14px 10px 16px;
+        }
+
+        .nav-group {
+            padding: 14px 14px 8px;
+            font-size: 0.72rem;
+            color: #bba793;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            font-weight: 700;
+        }
+
+        .nav-item {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            margin: 6px 8px;
+            padding: 13px 14px;
+            text-decoration: none;
+            color: #ece3d8;
+            border-radius: 16px;
+            cursor: pointer;
+            transition: .2s ease;
+            border: 1px solid transparent;
+            position: relative;
+        }
+
+            .nav-item i {
+                width: 24px;
+                text-align: center;
+                font-size: 1.05rem;
+                color: #ffd9b0;
+                flex-shrink: 0;
+            }
+
+            .nav-item span {
+                font-size: 0.95rem;
+                font-weight: 700;
+            }
+
+            .nav-item:hover {
+                background: rgba(255,255,255,0.07);
+                border-color: rgba(255,255,255,0.05);
+                transform: translateX(-2px);
+            }
+
+            .nav-item.active {
+                background: linear-gradient(90deg, rgba(217, 143, 71, 0.23), rgba(255,255,255,0.05));
+                border-color: rgba(217, 143, 71, 0.35);
+                color: white;
+            }
+
+                .nav-item.active::before {
+                    content: "";
+                    position: absolute;
+                    right: -2px;
+                    top: 14%;
+                    height: 72%;
+                    width: 4px;
+                    border-radius: 999px;
+                    background: var(--accent);
+                }
+
+        .sidebar-bottom {
+            padding: 14px 16px 20px;
+            border-top: 1px solid rgba(255,255,255,0.07);
+        }
+
+        .logout-btn {
+            width: 100%;
+            border: 1px solid rgba(214, 48, 49, 0.35);
+            background: rgba(214, 48, 49, 0.10);
+            color: #ffb3b3;
+            padding: 13px 14px;
+            border-radius: 14px;
+            cursor: pointer;
+            font-weight: 800;
+            transition: .2s ease;
+        }
+
+            .logout-btn:hover {
+                background: rgba(214, 48, 49, 0.18);
+                color: white;
+            }
+
+        .main-content {
+            min-width: 0;
+            display: flex;
+            flex-direction: column;
+            padding: 16px;
+            gap: 16px;
+        }
+
+        .topbar {
+            background: rgba(255,255,255,0.68);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(139, 69, 19, 0.07);
+            border-radius: var(--radius-xl);
+            padding: 14px 18px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 14px;
+            box-shadow: 0 10px 20px rgba(60, 40, 20, 0.04);
+            flex-wrap: wrap;
+        }
+
+        .topbar-left h2 {
+            margin: 0;
+            font-size: 1.15rem;
+        }
+
+        .topbar-left p {
+            margin: 4px 0 0;
+            color: var(--muted);
+            font-size: 0.9rem;
+        }
+
+        .topbar-right {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+
+        .mini-chip {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 10px 12px;
+            background: white;
+            border: 1px solid var(--border);
+            border-radius: 999px;
+            color: var(--text);
+            font-size: 0.88rem;
+            font-weight: 700;
+        }
+
+            .mini-chip .dot {
+                width: 8px;
+                height: 8px;
+                border-radius: 999px;
+                background: var(--success);
+            }
+
+        .content-frame-wrap {
+            flex: 1;
+            min-height: 0;
+            background: rgba(255,255,255,0.6);
+            border: 1px solid rgba(139, 69, 19, 0.06);
+            border-radius: 28px;
+            padding: 10px;
+            box-shadow: var(--shadow);
+            overflow: hidden;
+        }
+
+        iframe {
+            width: 100%;
+            height: 100%;
+            border: none;
+            background: white;
+            border-radius: 20px;
+        }
+
+        .collapsed .brand-text,
+        .collapsed .profile-box,
+        .collapsed .nav-group,
+        .collapsed .nav-item span,
+        .collapsed .collapse-btn span,
+        .collapsed .logout-btn span {
+            display: none;
+        }
+
+        .collapsed .sidebar-top {
+            padding: 18px 12px 12px;
+        }
+
+        .collapsed .brand {
+            justify-content: center;
+        }
+
+        .collapsed .collapse-btn {
+            padding: 10px;
+        }
+
+        .collapsed .nav-item {
+            justify-content: center;
+            padding: 14px 10px;
+        }
+
+            .collapsed .nav-item i {
+                margin: 0;
+            }
+
+        .collapsed .logout-btn {
+            padding: 12px;
+        }
+
+            .collapsed .logout-btn i {
+                margin: 0 !important;
+            }
+
+        .mobile-toggle {
+            display: none;
+            border: none;
+            background: white;
+            color: var(--primary);
+            border-radius: 12px;
+            padding: 10px 12px;
+            cursor: pointer;
+            box-shadow: 0 6px 15px rgba(50, 30, 10, 0.08);
+        }
+
+        @media (max-width: 1024px) {
+            .app-shell {
+                grid-template-columns: 1fr;
+            }
+
+            .sidebar {
+                position: fixed;
+                top: 0;
+                right: 0;
+                width: min(88vw, 320px);
+                transform: translateX(100%);
+                transition: transform .25s ease;
+                z-index: 30;
+            }
+
+                .sidebar.mobile-open {
+                    transform: translateX(0);
+                }
+
+            .mobile-toggle {
+                display: inline-flex;
+                align-items: center;
+                gap: 8px;
+            }
+
+            .main-content {
+                padding: 12px;
+            }
+        }
+
+        .overlay {
+            display: none;
+        }
+
+        @media (max-width: 1024px) {
+            .overlay.show {
+                display: block;
+                position: fixed;
+                inset: 0;
+                background: rgba(0,0,0,0.25);
+                z-index: 20;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="overlay" id="overlay" onclick="closeMobileSidebar()"></div>
+
+    <div class="app-shell" id="appShell">
+        <aside class="sidebar" id="sidebar">
+            <div class="sidebar-top">
+                <div class="brand">
+                    <div class="brand-icon">
+                        <i class="fas fa-utensils"></i>
+                    </div>
+                    <div class="brand-text">
+                        <h1>نظام المطعم الذكي</h1>
+                        <p>إدارة عصرية للطلبات، الصالة، والمطبخ</p>
+                    </div>
+                </div>
+
+                <button class="collapse-btn" onclick="toggleSidebar()">
+                    <i class="fas fa-bars"></i>
+                    <span>تصغير / توسيع القائمة</span>
+                </button>
+
+                <div class="profile-box">
+                    <div class="profile-name" id="profileName">جاري تحميل المستخدم...</div>
+                    <div class="profile-role" id="profileRole">—</div>
+                    <div class="profile-status">
+                        <i class="fas fa-circle" style="font-size: 0.55rem;"></i>
+                        <span>الجلسة فعالة</span>
+                    </div>
+                </div>
+            </div>
+
+            <nav class="nav-links">
+                <div class="nav-group">الرئيسية</div>
+                <a class="nav-item active" data-title="الإحصائيات العامة" data-subtitle="تابع الأداء العام، الطلبات الحية، والدخل اليومي" onclick="loadPage('admin_dashboard.html', this)">
+                    <i class="fas fa-chart-line"></i>
+                    <span>الإحصائيات العامة</span>
+                </a>
+
+                <div class="nav-group">إدارة الصالة</div>
+                <a class="nav-item" data-title="إدارة الطاولات" data-subtitle="تحكم بحالة الطاولات، الـ QR، والمواقع داخل المطعم" onclick="loadPage('manage_tables.html', this)">
+                    <i class="fas fa-chair"></i>
+                    <span>الطاولات</span>
+                </a>
+                <a class="nav-item" data-title="إدارة الحجوزات" data-subtitle="تابع الحجوزات القادمة وحالة الصالة" onclick="loadPage('manage_reservations.html', this)">
+                    <i class="fas fa-calendar-check"></i>
+                    <span>الحجوزات</span>
+                </a>
+
+                <div class="nav-group">المطبخ والمنيو</div>
+                <a class="nav-item" data-title="شاشة المطبخ" data-subtitle="متابعة مباشرة لتحضير الطلبات داخل الأقسام" onclick="loadPage('chef_test.html', this)">
+                    <i class="fas fa-fire-burner"></i>
+                    <span>شاشة المطبخ (KDS)</span>
+                </a>
+                <a class="nav-item" data-title="إدارة المنيو" data-subtitle="أنشئ أصنافًا جديدة وعدّل التوفر والأسعار" onclick="loadPage('manage_menu.html', this)">
+                    <i class="fas fa-book-open"></i>
+                    <span>قائمة الطعام</span>
+                </a>
+                <a class="nav-item" data-title="إدارة الوصفات" data-subtitle="اربط الأصناف بالمكونات والمخزون" onclick="loadPage('RecipeManagement.html', this)">
+                    <i class="fas fa-flask"></i>
+                    <span>وصفات الأطباق</span>
+                </a>
+
+                <div class="nav-group">المخازن</div>
+                <a class="nav-item" data-title="لوحة المخزن" data-subtitle="تابع الكميات، التنبيهات، وحالة المخزون" onclick="loadPage('InventoryDashboard.html', this)">
+                    <i class="fas fa-boxes-stacked"></i>
+                    <span>حالة المخزن</span>
+                </a>
+
+                <div class="nav-group">طاقم الخدمة</div>
+                <a class="nav-item" data-title="شاشة الكابتن" data-subtitle="إدارة الطلبات الميدانية وخدمة الصالة" onclick="loadPage('waiter_dashboard.html', this)">
+                    <i class="fas fa-user-tag"></i>
+                    <span>شاشة الكابتن</span>
+                </a>
+            </nav>
+
+            <div class="sidebar-bottom">
+                <button class="logout-btn" onclick="handleLogout()">
+                    <i class="fas fa-sign-out-alt" style="margin-left:8px;"></i>
+                    <span>تسجيل الخروج</span>
+                </button>
+            </div>
+        </aside>
+
+        <main class="main-content">
+            <div class="topbar">
+                <div class="topbar-left">
+                    <button class="mobile-toggle" onclick="toggleMobileSidebar()">
+                        <i class="fas fa-bars"></i>
+                        <span>القائمة</span>
+                    </button>
+                    <h2 id="pageTitle">الإحصائيات العامة</h2>
+                    <p id="pageSubtitle">تابع الأداء العام، الطلبات الحية، والدخل اليومي</p>
+                </div>
+
+                <div class="topbar-right">
+                    <div class="mini-chip">
+                        <span class="dot"></span>
+                        <span>Connected</span>
+                    </div>
+                    <div class="mini-chip">
+                        <i class="fas fa-user-shield"></i>
+                        <span id="topbarUser">—</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="content-frame-wrap">
+                <iframe id="mainFrame" src="admin_dashboard.html"></iframe>
+            </div>
+        </main>
+    </div>
+
+    <script>
+        const token = localStorage.getItem("authToken");
+        const API_URL = window.location.origin;
+
+        if (!token) {
+            window.location.href = "login.html";
+        }
+
+        async function bootstrapUser() {
+            try {
+                const response = await fetch(`${API_URL}/api/v1/Auth/me`, {
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+
+                const result = await response.json();
+
+                if (!response.ok || !result.success) {
+                    throw new Error(result.message || "فشل التحقق من الجلسة");
+                }
+
+                const user = result.data;
+                const fullName = `${user.firstName || ''} ${user.lastName || ''}`.trim() || user.email || "مستخدم";
+                const role = translateRole(user.role || "");
+
+                document.getElementById("profileName").innerText = fullName;
+                document.getElementById("profileRole").innerText = role;
+                document.getElementById("topbarUser").innerText = fullName;
+            } catch (error) {
+                console.error("Bootstrap user error:", error);
+                localStorage.removeItem("authToken");
+                window.location.href = "login.html";
+            }
+        }
+
+        function loadPage(pageUrl, element) {
+            document.getElementById('mainFrame').src = pageUrl;
+
+            document.querySelectorAll('.nav-item').forEach(item => item.classList.remove('active'));
+            element.classList.add('active');
+
+            const title = element.dataset.title || "لوحة التحكم";
+            const subtitle = element.dataset.subtitle || "";
+
+            document.getElementById("pageTitle").innerText = title;
+            document.getElementById("pageSubtitle").innerText = subtitle;
+
+            closeMobileSidebar();
+        }
+
+        function handleLogout() {
+            if (confirm("هل أنت متأكد من تسجيل الخروج؟")) {
+                localStorage.removeItem("authToken");
+                window.location.href = "login.html";
+            }
+        }
+
+        function translateRole(role) {
+            const map = {
+                "Admin": "مدير النظام",
+                "Manager": "مدير",
+                "Chef": "شيف",
+                "Waiter": "نادل",
+                "Cashier": "كاشير",
+                "DeliveryDriver": "سائق",
+                "Customer": "زبون"
+            };
+            return map[role] || role || "مستخدم";
+        }
+
+        function toggleSidebar() {
+            document.getElementById("appShell").classList.toggle("collapsed");
+        }
+
+        function toggleMobileSidebar() {
+            document.getElementById("sidebar").classList.toggle("mobile-open");
+            document.getElementById("overlay").classList.toggle("show");
+        }
+
+        function closeMobileSidebar() {
+            document.getElementById("sidebar").classList.remove("mobile-open");
+            document.getElementById("overlay").classList.remove("show");
+        }
+
+        bootstrapUser();
+    </script>
+</body>
+</html>

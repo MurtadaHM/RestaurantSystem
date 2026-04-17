@@ -2,6 +2,7 @@
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 using RestaurantSystem.Domain.Entities;
 using RestaurantSystem.Domain.Enums;
+using System;
 
 namespace RestaurantSystem.Infrastructure.Data.Configurations
 {
@@ -9,19 +10,13 @@ namespace RestaurantSystem.Infrastructure.Data.Configurations
     {
         public void Configure(EntityTypeBuilder<Table> builder)
         {
-            // ──────────────────────────────────────────
-            // Table
-            // ──────────────────────────────────────────
             builder.ToTable("Tables");
 
-            // ──────────────────────────────────────────
-            // Primary Key
-            // ──────────────────────────────────────────
+            // 1. المفتاح الأساسي
             builder.HasKey(t => t.Id);
+            builder.Property(t => t.Id).HasColumnType("uuid");
 
-            // ──────────────────────────────────────────
-            // Properties
-            // ──────────────────────────────────────────
+            // 2. الخصائص الأساسية
             builder.Property(t => t.TableNumber)
                 .IsRequired()
                 .HasMaxLength(10)
@@ -31,50 +26,36 @@ namespace RestaurantSystem.Infrastructure.Data.Configurations
                 .IsRequired()
                 .HasColumnType("integer");
 
+            // ✅ التحويل لنص (text) بدون DefaultValue في الـ Fluent API لمنع الانهيار 🔥
             builder.Property(t => t.Status)
                 .IsRequired()
-                .HasConversion<string>()               // ✅ Enum → string
-                .HasColumnType("text")
-                .HasDefaultValue(TableStatus.Available);
+                .HasConversion<string>()
+                .HasColumnType("text");
 
             builder.Property(t => t.Location)
-                .IsRequired(false)
-                .HasMaxLength(100)
-                .HasColumnType("character varying(100)");
+                .HasMaxLength(100);
 
             builder.Property(t => t.Notes)
-                .IsRequired(false)
-                .HasMaxLength(500)
-                .HasColumnType("character varying(500)");
+                .HasMaxLength(500);
 
-            builder.Property(t => t.IsDeleted)
-                .HasColumnType("boolean");
+            // 3. التواقيت (مهمة جداً لـ PostgreSQL لكي يقبل بيانات الـ Seed)
+            builder.Property(t => t.IsDeleted).HasColumnType("boolean");
 
             builder.Property(t => t.CreatedAt)
                 .IsRequired()
                 .HasColumnType("timestamp with time zone");
 
             builder.Property(t => t.UpdatedAt)
-                .HasColumnType("timestamp with time zone");  // ✅ nullable
+                .HasColumnType("timestamp with time zone");
 
             builder.Property(t => t.DeletedAt)
-                .HasColumnType("timestamp with time zone");  // ✅ nullable
+                .HasColumnType("timestamp with time zone");
 
-            // ──────────────────────────────────────────
-            // Indexes
-            // ──────────────────────────────────────────
+            // 4. الفهارس
+            builder.HasIndex(t => t.TableNumber).IsUnique().HasDatabaseName("IX_Tables_TableNumber");
+            builder.HasIndex(t => t.Status).HasDatabaseName("IX_Tables_Status");
 
-            // ✅ TableNumber يجب أن يكون فريداً
-            builder.HasIndex(t => t.TableNumber)
-                .IsUnique()
-                .HasDatabaseName("IX_Tables_TableNumber");
-
-            builder.HasIndex(t => t.Status)
-                .HasDatabaseName("IX_Tables_Status");
-
-            // ──────────────────────────────────────────
-            // Seed Data
-            // ──────────────────────────────────────────
+            // 5. Seed Data (البيانات الأولية)
             var seedDate = new DateTime(2025, 1, 1, 0, 0, 0, DateTimeKind.Utc);
 
             builder.HasData(
@@ -124,9 +105,6 @@ namespace RestaurantSystem.Infrastructure.Data.Configurations
                 }
             );
 
-            // ──────────────────────────────────────────
-            // Soft Delete Filter
-            // ──────────────────────────────────────────
             builder.HasQueryFilter(t => !t.IsDeleted);
         }
     }

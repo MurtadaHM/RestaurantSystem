@@ -81,7 +81,7 @@ namespace RestaurantSystem.Api.Controllers
         /// <summary>
         /// إضافة طاولة جديدة
         /// </summary>
-        [Authorize(Roles = "Admin,Manager")]
+        [Authorize(Roles = "Admin,Manager,Cashier,Waiter")]
         [HttpPost]
         [ProducesResponseType(typeof(ApiResponse<TableResponseDto>), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
@@ -106,7 +106,7 @@ namespace RestaurantSystem.Api.Controllers
         /// <summary>
         /// تعديل بيانات الطاولة
         /// </summary>
-        [Authorize(Roles = "Admin,Manager")]
+        [Authorize(Roles = "Admin,Manager,Cashier,Waiter")]
         [HttpPut("{id:guid}")]
         [ProducesResponseType(typeof(ApiResponse<TableResponseDto>), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
@@ -114,7 +114,7 @@ namespace RestaurantSystem.Api.Controllers
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status403Forbidden)]
         public async Task<ActionResult<ApiResponse<TableResponseDto>>> UpdateTable(
             Guid id,
-            [FromBody] UpdateTableRequestDto request)  // ✅ الاسم الصحيح
+            [FromBody] UpdateTableRequestDto request)
         {
             if (id == Guid.Empty)
             {
@@ -128,13 +128,11 @@ namespace RestaurantSystem.Api.Controllers
                 return BadRequest(ApiResponse<TableResponseDto>.Fail("البيانات مطلوبة"));
             }
 
-            // ✅ تأكد إن الـ ID في الـ URL يطابق الـ ID في الـ Body
             if (request.Id != Guid.Empty && request.Id != id)
             {
                 return BadRequest(ApiResponse<TableResponseDto>.Fail("معرف الطاولة غير متطابق"));
             }
 
-            // ✅ نضع الـ ID من الـ URL في الـ request دائماً
             request.Id = id;
 
             _logger.LogInformation("Updating table: {TableId}", id);

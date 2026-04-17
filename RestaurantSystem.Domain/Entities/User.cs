@@ -39,7 +39,12 @@ namespace RestaurantSystem.Domain.Entities
         /// <summary>المدينة</summary>
         public string? City { get; set; }                         // ✅ FIX: nullable
 
+        /// <summary>الاسم الكامل (محسوب من الاسم الأول والأخير)</summary>
+        public string FullName => $"{FirstName} {LastName}"; // ✅ حل مثالي لمشكلة الـ UserName
+
         // Navigation Properties
         public ICollection<Order> Orders { get; set; } = new List<Order>();
+
+
     }
 }

@@ -1,0 +1,325 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <title>إدارة الأقسام - نظام المطعم</title>
+    <style>
+        :root {
+            --primary: #2d3436;
+            --accent: #6c5ce7;
+            --success: #00b894;
+            --danger: #d63031;
+            --warning: #fdcb6e;
+            --bg: #f9f9f9;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: var(--bg);
+            margin: 0;
+            padding: 20px;
+        }
+
+        .header {
+            background: var(--primary);
+            color: white;
+            padding: 15px 25px;
+            border-radius: 12px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 25px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+
+        .main-container {
+            display: grid;
+            grid-template-columns: 350px 1fr;
+            gap: 25px;
+        }
+
+        /* نموذج الإضافة */
+        .form-card {
+            background: white;
+            padding: 25px;
+            border-radius: 15px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+            height: fit-content;
+            position: sticky;
+            top: 20px;
+        }
+
+            .form-card h3 {
+                margin-top: 0;
+                color: var(--accent);
+            }
+
+        label {
+            display: block;
+            margin-top: 10px;
+            font-weight: bold;
+            color: #636e72;
+            font-size: 0.9em;
+        }
+
+        input, textarea, select {
+            width: 100%;
+            padding: 12px;
+            margin: 8px 0;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            box-sizing: border-box;
+            font-family: inherit;
+        }
+
+        .btn-add {
+            width: 100%;
+            padding: 12px;
+            background: var(--accent);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: bold;
+            font-size: 1em;
+            margin-top: 15px;
+        }
+
+            .btn-add:hover {
+                background: #5b4cc4;
+            }
+
+        /* قائمة الأقسام */
+        .list-card {
+            background: white;
+            padding: 25px;
+            border-radius: 15px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+        }
+
+        .dept-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 15px;
+            border-bottom: 1px solid #eee;
+            transition: 0.2s;
+        }
+
+            .dept-item:hover {
+                background: #fcfcfc;
+            }
+
+        .dept-info h4 {
+            margin: 0;
+            color: #2d3436;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .dept-info p {
+            margin: 5px 0 0;
+            font-size: 0.85em;
+            color: #636e72;
+        }
+
+        /* Badges للحالات */
+        .badge {
+            padding: 4px 10px;
+            border-radius: 20px;
+            font-size: 0.75em;
+            font-weight: bold;
+            color: white;
+        }
+
+        .status-Active {
+            background: var(--success);
+        }
+
+        .status-Inactive {
+            background: var(--danger);
+        }
+
+        .status-Busy {
+            background: var(--warning);
+            color: #2d3436;
+        }
+
+        .btn-delete {
+            background: none;
+            border: 1px solid var(--danger);
+            color: var(--danger);
+            padding: 5px 12px;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: 0.2s;
+        }
+
+            .btn-delete:hover {
+                background: var(--danger);
+                color: white;
+            }
+
+        .btn-logout {
+            background: rgba(255,255,255,0.2);
+            color: white;
+            border: 1px solid white;
+            padding: 8px 15px;
+            border-radius: 8px;
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="header">
+        <div>
+            <h2>📁 إدارة أقسام المنيو</h2>
+            <small id="statusText">جاري مزامنة البيانات... 🔄</small>
+        </div>
+        <button class="btn-logout" onclick="logout()">🏃 خروج</button>
+    </div>
+
+    <div class="main-container">
+        <div class="form-card">
+            <h3>➕ إضافة قسم جديد</h3>
+
+            <label>اسم القسم</label>
+            <input type="text" id="deptName" placeholder="مثلاً: المشاوي، المطبخ الشرقي">
+
+            <label>وصف القسم</label>
+            <textarea id="deptDesc" rows="3" placeholder="اكتب وصفاً موجزاً..."></textarea>
+
+            <label>حالة القسم الحالية</label>
+            <select id="deptStatus">
+                <option value="Active">نشط (يعمل)</option>
+                <option value="Inactive">متوقف (صيانة/عطلة)</option>
+                <option value="Busy">مزدحم جداً</option>
+            </select>
+
+            <button class="btn-add" onclick="addNewDepartment()">حفظ القسم</button>
+        </div>
+
+        <div class="list-card">
+            <h3>📋 الأقسام الحالية</h3>
+            <div id="departmentsList">
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // استخدام المنفذ الصحيح للـ API
+        const API_URL = "http://localhost:5000"; // حدث هذا الرابط حسب تشغيل الـ API عندك
+        let token = localStorage.getItem("authToken");
+
+        if (!token) window.location.href = "login.html";
+
+        // 1. جلب الأقسام من السيرفر
+        async function fetchDepartments() {
+            try {
+                const response = await fetch(`${API_URL}/api/v1/Departments`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+
+                if (response.status === 401) logout();
+
+                const result = await response.json();
+                if (result.success) {
+                    renderDepartments(result.data);
+                    document.getElementById("statusText").innerText = "🟢 البيانات محدثة";
+                }
+            } catch (err) {
+                console.error("Error:", err);
+                document.getElementById("statusText").innerText = "🔴 خطأ في الاتصال";
+            }
+        }
+
+        // 2. عرض الأقسام في الصفحة
+        function renderDepartments(depts) {
+            const list = document.getElementById("departmentsList");
+            list.innerHTML = depts.length === 0 ? "<p style='padding:20px; text-align:center;'>لا توجد أقسام مضافة بعد.</p>" : "";
+
+            depts.forEach(d => {
+                // ترجمة الحالات للعرض
+                const statusLabels = { 'Active': 'نشط', 'Inactive': 'متوقف', 'Busy': 'مزدحم' };
+
+                const item = `
+                        <div class="dept-item" id="dept-${d.id}">
+                            <div class="dept-info">
+                                <h4>
+                                    ${d.name}
+                                    <span class="badge status-${d.status}">${statusLabels[d.status] || d.status}</span>
+                                </h4>
+                                <p>${d.description || 'لا يوجد وصف مضاف لهذا القسم.'}</p>
+                            </div>
+                            <button class="btn-delete" onclick="deleteDepartment('${d.id}')">حذف 🗑️</button>
+                        </div>`;
+                list.insertAdjacentHTML('beforeend', item);
+            });
+        }
+
+        // 3. إضافة قسم جديد (إرسال النصوص للباك-إيند)
+        async function addNewDepartment() {
+            const name = document.getElementById("deptName").value.trim();
+            const description = document.getElementById("deptDesc").value.trim();
+            const status = document.getElementById("deptStatus").value;
+
+            if (!name) { alert("يرجى إدخال اسم القسم"); return; }
+
+            try {
+                const response = await fetch(`${API_URL}/api/v1/Departments`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                    },
+                    body: JSON.stringify({
+                        name: name,
+                        description: description,
+                        status: status // يرسل كنص (Active, Inactive, Busy)
+                    })
+                });
+
+                const result = await response.json();
+                if (response.ok && result.success) {
+                    // تصفير الحقول
+                    document.getElementById("deptName").value = "";
+                    document.getElementById("deptDesc").value = "";
+                    fetchDepartments(); // تحديث القائمة فوراً
+                } else {
+                    alert("فشل الإضافة: " + (result.message || "تأكد من البيانات"));
+                }
+            } catch (err) { alert("حدث خطأ في الاتصال بالسيرفر"); }
+        }
+
+        // 4. حذف قسم
+        async function deleteDepartment(id) {
+            if (!confirm("هل أنت متأكد من حذف هذا القسم؟ سيتم حذف التصنيفات المرتبطة به أيضاً.")) return;
+
+            try {
+                const response = await fetch(`${API_URL}/api/v1/Departments/${id}`, {
+                    method: 'DELETE',
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+
+                if (response.ok) {
+                    const el = document.getElementById(`dept-${id}`);
+                    el.style.opacity = '0';
+                    setTimeout(() => el.remove(), 300);
+                } else {
+                    alert("لا يمكن حذف القسم حالياً.");
+                }
+            } catch (err) { alert("حدث خطأ أثناء الاتصال"); }
+        }
+
+        function logout() {
+            localStorage.removeItem("authToken");
+            window.location.href = "login.html";
+        }
+
+        // تشغيل الجلب التلقائي عند فتح الصفحة
+        fetchDepartments();
+    </script>
+</body>
+</html>

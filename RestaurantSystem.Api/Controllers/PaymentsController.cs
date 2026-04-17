@@ -10,7 +10,7 @@ using RestaurantSystem.Domain.Enums;
 namespace RestaurantSystem.Api.Controllers
 {
     /// <summary>
-    /// إدارة المدفوعات
+    /// إدارة عمليات الدفع والنظام المالي للمطعم
     /// </summary>
     [ApiController]
     [Route("api/v1/[controller]")]
@@ -33,16 +33,14 @@ namespace RestaurantSystem.Api.Controllers
         // GET /api/v1/payments
         // ──────────────────────────────────────────
         /// <summary>
-        /// جلب جميع المدفوعات — للمدير فقط
+        /// جلب جميع السجلات المالية (للمدراء فقط)
         /// </summary>
         [Authorize(Roles = "Admin,Manager")]
         [HttpGet]
         [ProducesResponseType(typeof(ApiResponse<IEnumerable<PaymentResponseDto>>), StatusCodes.Status200OK)]
-        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status401Unauthorized)]
-        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status403Forbidden)]
         public async Task<ActionResult<ApiResponse<IEnumerable<PaymentResponseDto>>>> GetAllPayments()
         {
-            _logger.LogInformation("Fetching all payments");
+            _logger.LogInformation("Fetching all payments from the system.");
             var payments = await _paymentService.GetAllPaymentsAsync();
             return Ok(ApiResponse<IEnumerable<PaymentResponseDto>>.Ok(payments));
         }
@@ -51,24 +49,18 @@ namespace RestaurantSystem.Api.Controllers
         // GET /api/v1/payments/{id}
         // ──────────────────────────────────────────
         /// <summary>
-        /// جلب دفع محدد بالـ ID
+        /// جلب تفاصيل عملية دفع محددة
         /// </summary>
         [Authorize(Roles = "Admin,Manager")]
         [HttpGet("{id:guid}")]
         [ProducesResponseType(typeof(ApiResponse<PaymentResponseDto>), StatusCodes.Status200OK)]
-        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
-        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status401Unauthorized)]
-        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status403Forbidden)]
         public async Task<ActionResult<ApiResponse<PaymentResponseDto>>> GetPayment(Guid id)
         {
             if (id == Guid.Empty)
-            {
-                _logger.LogWarning("GetPayment called with empty ID");
                 return BadRequest(ApiResponse<PaymentResponseDto>.Fail("معرف الدفع غير صحيح"));
-            }
 
-            _logger.LogInformation("Fetching payment: {PaymentId}", id);
+            _logger.LogInformation("Fetching payment details for ID: {PaymentId}", id);
             var payment = await _paymentService.GetPaymentByIdAsync(id);
             return Ok(ApiResponse<PaymentResponseDto>.Ok(payment));
         }
@@ -77,173 +69,83 @@ namespace RestaurantSystem.Api.Controllers
         // GET /api/v1/payments/order/{orderId}
         // ──────────────────────────────────────────
         /// <summary>
-        /// جلب الدفع الخاص بطلب معين
+        /// جلب الدفع الخاص بطلب معين (Order)
         /// </summary>
         [Authorize]
         [HttpGet("order/{orderId:guid}")]
         [ProducesResponseType(typeof(ApiResponse<PaymentResponseDto>), StatusCodes.Status200OK)]
-        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
-        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
-        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status401Unauthorized)]
-        public async Task<ActionResult<ApiResponse<PaymentResponseDto>>> GetPaymentByOrder(
-            Guid orderId)
+        public async Task<ActionResult<ApiResponse<PaymentResponseDto>>> GetPaymentByOrder(Guid orderId)
         {
             if (orderId == Guid.Empty)
-            {
-                _logger.LogWarning("GetPaymentByOrder called with empty orderId");
                 return BadRequest(ApiResponse<PaymentResponseDto>.Fail("معرف الطلب غير صحيح"));
-            }
 
-            _logger.LogInformation("Fetching payment for order: {OrderId}", orderId);
             var payment = await _paymentService.GetPaymentByOrderIdAsync(orderId);
             return Ok(ApiResponse<PaymentResponseDto>.Ok(payment));
-        }
-
-        // ──────────────────────────────────────────
-        // GET /api/v1/payments/status/{status}
-        // ──────────────────────────────────────────
-        /// <summary>
-        /// جلب المدفوعات بحالة معينة
-        /// </summary>
-        [Authorize(Roles = "Admin,Manager")]
-        [HttpGet("status/{status}")]
-        [ProducesResponseType(typeof(ApiResponse<IEnumerable<PaymentResponseDto>>), StatusCodes.Status200OK)]
-        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
-        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status401Unauthorized)]
-        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status403Forbidden)]
-        public async Task<ActionResult<ApiResponse<IEnumerable<PaymentResponseDto>>>> GetPaymentsByStatus(
-            PaymentStatus status)
-        {
-            _logger.LogInformation("Fetching payments by status: {Status}", status);
-            var payments = await _paymentService.GetPaymentsByStatusAsync(status);
-            return Ok(ApiResponse<IEnumerable<PaymentResponseDto>>.Ok(payments));
-        }
-
-        // ──────────────────────────────────────────
-        // GET /api/v1/payments/order/{orderId}/is-paid
-        // ──────────────────────────────────────────
-        /// <summary>
-        /// التحقق من دفع طلب معين
-        /// </summary>
-        [Authorize]
-        [HttpGet("order/{orderId:guid}/is-paid")]
-        [ProducesResponseType(typeof(ApiResponse<bool>), StatusCodes.Status200OK)]
-        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
-        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status401Unauthorized)]
-        public async Task<ActionResult<ApiResponse<bool>>> IsOrderPaid(Guid orderId)
-        {
-            if (orderId == Guid.Empty)
-            {
-                _logger.LogWarning("IsOrderPaid called with empty orderId");
-                return BadRequest(ApiResponse<bool>.Fail("معرف الطلب غير صحيح"));
-            }
-
-            _logger.LogInformation("Checking if order is paid: {OrderId}", orderId);
-            var isPaid = await _paymentService.IsOrderPaidAsync(orderId);
-            return Ok(ApiResponse<bool>.Ok(isPaid));
         }
 
         // ──────────────────────────────────────────
         // POST /api/v1/payments
         // ──────────────────────────────────────────
         /// <summary>
-        /// إنشاء عملية دفع جديدة
+        /// تسجيل عملية دفع جديدة لطلب
         /// </summary>
         [Authorize]
         [HttpPost]
         [ProducesResponseType(typeof(ApiResponse<PaymentResponseDto>), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
-        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status401Unauthorized)]
-        public async Task<ActionResult<ApiResponse<PaymentResponseDto>>> CreatePayment(
-            [FromBody] CreatePaymentRequestDto request)
+        public async Task<ActionResult<ApiResponse<PaymentResponseDto>>> CreatePayment([FromBody] CreatePaymentRequestDto request)
         {
             if (request == null)
-            {
-                _logger.LogWarning("CreatePayment called with null request");
-                return BadRequest(ApiResponse<PaymentResponseDto>.Fail("البيانات مطلوبة"));
-            }
+                return BadRequest(ApiResponse<PaymentResponseDto>.Fail("بيانات الدفع مطلوبة"));
 
-            _logger.LogInformation(
-                "Creating payment for order: {OrderId}, Method: {PaymentMethod}",
-                request.OrderId, request.PaymentMethod);
-
+            _logger.LogInformation("Processing new payment for Order: {OrderId}", request.OrderId);
             var result = await _paymentService.CreatePaymentAsync(request);
 
-            _logger.LogInformation("Payment created: {PaymentId}", result.Id);
-            return Ok(ApiResponse<PaymentResponseDto>.Ok(result, "تم إنشاء عملية الدفع بنجاح"));
+            return Ok(ApiResponse<PaymentResponseDto>.Ok(result, "تم تسجيل عملية الدفع بنجاح"));
         }
 
         // ──────────────────────────────────────────
         // PATCH /api/v1/payments/{id}/status
         // ──────────────────────────────────────────
         /// <summary>
-        /// تحديث حالة الدفع
+        /// تحديث حالة الدفع (تأكيد الدفع يحول الطاولة إلى متاحة تلقائياً)
         /// </summary>
         [Authorize(Roles = "Admin,Manager")]
         [HttpPatch("{id:guid}/status")]
         [ProducesResponseType(typeof(ApiResponse<PaymentResponseDto>), StatusCodes.Status200OK)]
-        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
-        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status401Unauthorized)]
-        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status403Forbidden)]
-        public async Task<ActionResult<ApiResponse<PaymentResponseDto>>> UpdatePaymentStatus(
-            Guid id,
-            [FromBody] UpdatePaymentStatusRequestDto request)
+        public async Task<ActionResult<ApiResponse<PaymentResponseDto>>> UpdatePaymentStatus(Guid id, [FromBody] UpdatePaymentStatusRequestDto request)
         {
-            if (id == Guid.Empty)
-            {
-                _logger.LogWarning("UpdatePaymentStatus called with empty ID");
-                return BadRequest(ApiResponse<PaymentResponseDto>.Fail("معرف الدفع غير صحيح"));
-            }
+            if (id == Guid.Empty || request == null)
+                return BadRequest(ApiResponse<PaymentResponseDto>.Fail("البيانات المرسلة غير مكتملة"));
 
-            if (request == null)
-            {
-                _logger.LogWarning("UpdatePaymentStatus called with null request");
-                return BadRequest(ApiResponse<PaymentResponseDto>.Fail("البيانات مطلوبة"));
-            }
-
-            _logger.LogInformation(
-                "Updating payment {PaymentId} status to {NewStatus}",
-                id, request.NewStatus);
-
+            _logger.LogInformation("Updating status for payment {PaymentId} to {NewStatus}", id, request.NewStatus);
             var result = await _paymentService.UpdatePaymentStatusAsync(id, request);
 
-            _logger.LogInformation("Payment status updated: {PaymentId}", id);
-            return Ok(ApiResponse<PaymentResponseDto>.Ok(result, "تم تحديث حالة الدفع بنجاح"));
+            return Ok(ApiResponse<PaymentResponseDto>.Ok(result, "تم تحديث حالة الدفع وتحديث حالة النظام المرتبطة"));
         }
 
         // ──────────────────────────────────────────
         // POST /api/v1/payments/{id}/refund
         // ──────────────────────────────────────────
         /// <summary>
-        /// استرداد دفعة مكتملة
+        /// استرداد مبلغ عملية دفع مكتملة (للمدراء فقط)
         /// </summary>
         [Authorize(Roles = "Admin,Manager")]
         [HttpPost("{id:guid}/refund")]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status200OK)]
-        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
-        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status401Unauthorized)]
-        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status403Forbidden)]
-        public async Task<ActionResult<ApiResponse<object>>> RefundPayment(
-            Guid id,
-            [FromQuery] string? notes = null)
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status409Conflict)]
+        public async Task<ActionResult<ApiResponse<object>>> RefundPayment(Guid id, [FromQuery] string? notes = null)
         {
             if (id == Guid.Empty)
-            {
-                _logger.LogWarning("RefundPayment called with empty ID");
                 return BadRequest(ApiResponse<object>.Fail("معرف الدفع غير صحيح"));
-            }
 
-            _logger.LogInformation("Refunding payment: {PaymentId}", id);
-            var result = await _paymentService.RefundPaymentAsync(id, notes);
+            _logger.LogWarning("Refunding payment: {PaymentId}", id);
 
-            if (!result)
-            {
-                _logger.LogWarning("Refund failed for payment: {PaymentId}", id);
-                return BadRequest(ApiResponse<object>.Fail("الدفع غير موجود"));
-            }
+            // الميدل وير سيتكفل بالأخطاء مثل 404 أو 409 بناءً على الـ Exceptions الملقاة
+            await _paymentService.RefundPaymentAsync(id, notes);
 
-            _logger.LogInformation("Payment refunded: {PaymentId}", id);
-            return Ok(ApiResponse<object>.Ok("تم استرداد الدفع بنجاح"));
+            _logger.LogInformation("Payment {PaymentId} refunded successfully.", id);
+            return Ok(ApiResponse<object>.Ok(null, "تم استرداد الدفع بنجاح بنجاح"));
         }
     }
 }

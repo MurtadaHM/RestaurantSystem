@@ -4,7 +4,7 @@
     {
         public bool IsSuccess { get; set; }
         public string Message { get; set; } = string.Empty;
-        public UserAuthDto? User { get; set; } // جعلناه nullable في حال فشل تسجيل الدخول
+        public UserAuthDto? User { get; set; }
         public string Token { get; set; } = string.Empty;
         public string RefreshToken { get; set; } = string.Empty;
         public DateTime ExpiresAt { get; set; }

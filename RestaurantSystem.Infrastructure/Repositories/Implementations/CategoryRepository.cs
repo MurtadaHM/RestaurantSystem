@@ -5,30 +5,30 @@ using RestaurantSystem.Infrastructure.Data;
 
 namespace RestaurantSystem.Infrastructure.Repositories.Implementations
 {
-    // ✅ نمرر context للأساس (base) فقط لتجنب تحذير الـ Capture
     public class CategoryRepository(ApplicationDbContext context)
         : Repository<Category>(context), ICategoryRepository
     {
         // ──────────────────────────────────────────
-        // جلب فئة واحدة مع عدد منتجاتها
+        // جلب فئة واحدة مع القسم وعدد المنتجات
         // ──────────────────────────────────────────
         public async Task<Category?> GetCategoryWithItemCountAsync(Guid id)
         {
-            // ✅ نستخدم _context (المورّث من الأب) بدلاً من context المعامل
             return await _context.Categories
+                .Include(c => c.Department) // ✅ السطر السحري: جلب بيانات القسم المرتبط
                 .Include(c => c.MenuItems
-                    .Where(m => !m.IsDeleted)) // ✅ استثناء المحذوفين Soft Delete
+                    .Where(m => !m.IsDeleted))
                 .FirstOrDefaultAsync(c => c.Id == id && !c.IsDeleted);
         }
 
         // ──────────────────────────────────────────
-        // جلب كل الفئات مع عدد منتجاتها مرتبة بـ DisplayOrder
+        // جلب كل الفئات مع أقسامها ومنتجاتها
         // ──────────────────────────────────────────
         public async Task<IEnumerable<Category>> GetAllWithItemCountAsync()
         {
             return await _context.Categories
+                .Include(c => c.Department) // ✅ السطر السحري: لكي يظهر الاسم في الجدول
                 .Include(c => c.MenuItems
-                    .Where(m => !m.IsDeleted)) // ✅ Soft Delete filter
+                    .Where(m => !m.IsDeleted))
                 .Where(c => !c.IsDeleted)
                 .OrderBy(c => c.DisplayOrder)
                 .ToListAsync();
@@ -41,7 +41,7 @@ namespace RestaurantSystem.Infrastructure.Repositories.Implementations
         {
             return await _context.Categories
                 .AnyAsync(c => c.Name.ToLower() == name.ToLower()
-                            && !c.IsDeleted); // ✅ نستثني المحذوفين
+                            && !c.IsDeleted);
         }
 
         // ──────────────────────────────────────────
@@ -51,7 +51,7 @@ namespace RestaurantSystem.Infrastructure.Repositories.Implementations
         {
             return await _context.MenuItems
                 .AnyAsync(m => m.CategoryId == categoryId
-                            && !m.IsDeleted); // ✅ Soft Delete filter
+                            && !m.IsDeleted);
         }
     }
 }

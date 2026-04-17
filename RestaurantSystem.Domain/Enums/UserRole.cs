@@ -1,19 +1,16 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace RestaurantSystem.Domain.Enums
 {
     public enum UserRole
     {
-        Admin = 1,
-        Manager = 2,
-        Chef = 3,
-        Waiter = 4,
-        Cashier = 5,
-        DeliveryDriver = 6,
-        Customer = 7
+        Admin = 1,          // إدارة كاملة للنظام
+        Manager = 2,        // إدارة تشغيلية
+        Chef = 3,           // المطبخ
+        Waiter = 4,         // النادل
+        Cashier = 5,        // الكاشير
+        DeliveryDriver = 6, // سائق التوصيل
+        Customer = 7,       // العميل
+        Barista = 8         // الباريستا
     }
 }

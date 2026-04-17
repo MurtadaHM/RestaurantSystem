@@ -2,19 +2,22 @@
 
 namespace RestaurantSystem.Application.Services.Interfaces
 {
-    public interface ICategoryService  // ✅ public بدلاً من internal
+    public interface ICategoryService
     {
-        // Create
+        // ✅ الإنشاء
         Task<CategoryResponseDto> CreateCategoryAsync(CreateCategoryRequestDto request);
 
-        // Read
+        // ✅ القراءة
         Task<CategoryResponseDto> GetCategoryByIdAsync(Guid id);
         Task<IEnumerable<CategoryResponseDto>> GetAllCategoriesAsync();
+        
+        // 🆕 وظيفة إضافية: جلب الفئات التابعة لقسم معين (مثل فئات "البارستا" فقط)
+        Task<IEnumerable<CategoryResponseDto>> GetCategoriesByDepartmentAsync(Guid departmentId);
 
-        // Update
+        // ✅ التحديث
         Task<CategoryResponseDto> UpdateCategoryAsync(Guid id, UpdateCategoryRequestDto request);
 
-        // Delete
+        // ✅ الحذف
         Task<bool> DeleteCategoryAsync(Guid id);
     }
 }

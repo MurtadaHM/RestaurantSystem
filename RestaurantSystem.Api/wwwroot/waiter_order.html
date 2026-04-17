@@ -1,0 +1,438 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <title>تسجيل طلب جديد - نظام المطعم</title>
+    <style>
+        :root {
+            --primary: #e67e22;
+            --dark: #2d3436;
+            --light-bg: #f4f7f6;
+            --success: #27ae60;
+            --delivery: #0984e3;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, sans-serif;
+            margin: 0;
+            background: var(--light-bg);
+            display: flex;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        /* الأقسام الجانبية */
+        .categories-bar {
+            width: 120px;
+            background: white;
+            border-left: 1px solid #ddd;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            padding: 15px;
+            overflow-y: auto;
+        }
+
+        .cat-item {
+            padding: 12px 5px;
+            text-align: center;
+            background: #f8f9fa;
+            border-radius: 10px;
+            cursor: pointer;
+            font-size: 13px;
+            font-weight: 600;
+            transition: 0.3s;
+            border: 1px solid #eee;
+        }
+
+            .cat-item.active {
+                background: var(--primary);
+                color: white;
+                border-color: var(--primary);
+            }
+
+        /* منطقة المنيو */
+        .menu-section {
+            flex: 1;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .menu-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            background: white;
+            padding: 15px;
+            border-radius: 12px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+        }
+
+        .items-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+            gap: 15px;
+            overflow-y: auto;
+            padding-bottom: 20px;
+        }
+
+        .item-card {
+            background: white;
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+            cursor: pointer;
+            transition: 0.2s;
+            border: 2px solid transparent;
+            display: flex;
+            flex-direction: column;
+        }
+
+            .item-card:hover {
+                transform: translateY(-5px);
+                border-color: var(--primary);
+            }
+
+        .item-img {
+            width: 100%;
+            height: 100px;
+            object-fit: cover;
+            background: #eee;
+        }
+
+        .item-info {
+            padding: 10px;
+            text-align: center;
+        }
+
+        .item-name {
+            font-weight: bold;
+            font-size: 0.9em;
+            margin-bottom: 5px;
+        }
+
+        .item-price {
+            color: var(--primary);
+            font-weight: bold;
+        }
+
+        /* سلة الطلبات */
+        .cart-section {
+            width: 380px;
+            background: white;
+            border-right: 1px solid #ddd;
+            display: flex;
+            flex-direction: column;
+            box-shadow: -2px 0 10px rgba(0,0,0,0.05);
+        }
+
+        .cart-header {
+            padding: 15px;
+            background: var(--dark);
+            color: white;
+            display: flex;
+            justify-content: space-between;
+        }
+
+        /* خيارات نوع الطلب */
+        .order-type-toggle {
+            display: flex;
+            background: #eee;
+            margin: 10px;
+            border-radius: 8px;
+            padding: 4px;
+        }
+
+        .type-btn {
+            flex: 1;
+            padding: 8px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: 0.3s;
+            background: transparent;
+        }
+
+            .type-btn.active {
+                background: white;
+                box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            }
+
+                .type-btn.active.delivery {
+                    color: var(--delivery);
+                }
+
+                .type-btn.active.dining {
+                    color: var(--primary);
+                }
+
+        /* حقول التوصيل (مخفية افتراضياً) */
+        #deliveryFields {
+            padding: 10px;
+            background: #f0f7ff;
+            margin: 0 10px 10px;
+            border-radius: 8px;
+            display: none;
+        }
+
+        .delivery-input {
+            width: 100%;
+            padding: 8px;
+            margin-bottom: 8px;
+            border: 1px solid #cce3ff;
+            border-radius: 5px;
+            box-sizing: border-box;
+        }
+
+        .cart-items {
+            flex: 1;
+            overflow-y: auto;
+            padding: 10px;
+        }
+
+        .cart-item-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 10px 0;
+            border-bottom: 1px solid #eee;
+        }
+
+        .cart-footer {
+            padding: 20px;
+            border-top: 2px solid #eee;
+            background: #fafafa;
+        }
+
+        .total-price {
+            font-size: 1.5em;
+            font-weight: bold;
+            text-align: center;
+            display: block;
+            margin-bottom: 15px;
+        }
+
+        .btn-send {
+            width: 100%;
+            padding: 15px;
+            background: var(--success);
+            color: white;
+            border: none;
+            border-radius: 10px;
+            font-size: 1.1em;
+            font-weight: bold;
+            cursor: pointer;
+        }
+
+            .btn-send:disabled {
+                background: #ccc;
+            }
+    </style>
+</head>
+<body>
+
+    <div class="categories-bar" id="categoriesList">
+        <div class="cat-item active" id="cat-all" onclick="loadMenu()">الكل</div>
+    </div>
+
+    <div class="menu-section">
+        <div class="menu-header">
+            <div>
+                <h2 id="tableNameDisplay" style="margin:0; color:var(--primary);">طاولة: --</h2>
+                <small id="tableInfo">📍 اختر نوع الطلب أدناه</small>
+            </div>
+            <input type="text" id="searchInput" onkeyup="searchMenu()" placeholder="بحث عن وجبة..." style="padding: 8px 15px; border-radius: 20px; border: 1px solid #ddd; outline: none;">
+        </div>
+        <div class="items-grid" id="itemsGrid"></div>
+    </div>
+
+    <div class="cart-section">
+        <div class="cart-header">
+            <h3>🛒 فاتورة الطلب</h3>
+            <span id="cartCount" style="background:var(--primary); padding:2px 8px; border-radius:10px; font-size: 0.8em;">0 أصناف</span>
+        </div>
+
+        <div class="order-type-toggle">
+            <button class="type-btn active dining" id="typeDining" onclick="setOrderType('DiningIn')">🍽️ داخل المطعم</button>
+            <button class="type-btn delivery" id="typeDelivery" onclick="setOrderType('Delivery')">🛵 توصيل (Sendy)</button>
+        </div>
+
+        <div id="deliveryFields">
+            <small style="color: var(--delivery); font-weight: bold;">بيانات التوصيل (Sendy Integration)</small>
+            <input type="text" id="custPhone" class="delivery-input" placeholder="رقم هاتف الزبون">
+            <input type="text" id="custAddress" class="delivery-input" placeholder="عنوان التوصيل بالتفصيل">
+        </div>
+
+        <div class="cart-items" id="cartList"></div>
+
+        <div class="cart-footer">
+            <textarea id="orderNotes" placeholder="ملاحظات عامة للطلب..." style="width:100%; border-radius:8px; border:1px solid #ddd; padding:8px; margin-bottom:10px; resize:none;"></textarea>
+            <span class="total-price" id="totalDisplay">0 د.ع</span>
+            <button class="btn-send" id="btnSubmit" onclick="submitOrder()">إرسال الطلب للمطبخ 👨‍🍳</button>
+        </div>
+    </div>
+
+    <script>
+        const API_URL = window.location.origin;
+        const token = localStorage.getItem("authToken");
+        let cart = [];
+        let allItems = [];
+        let currentOrderType = "DiningIn"; // Enum كـ string
+
+        const urlParams = new URLSearchParams(window.location.search);
+        const tableId = urlParams.get('tableId');
+        const tableNumber = urlParams.get('num');
+
+        if (tableNumber) document.getElementById('tableNameDisplay').innerText = `طاولة: ${tableNumber}`;
+
+        // 1. تبديل نوع الطلب
+        function setOrderType(type) {
+            currentOrderType = type;
+            const isDelivery = type === 'Delivery';
+
+            document.getElementById('deliveryFields').style.display = isDelivery ? 'block' : 'none';
+            document.getElementById('typeDelivery').classList.toggle('active', isDelivery);
+            document.getElementById('typeDining').classList.toggle('active', !isDelivery);
+
+            if (isDelivery) {
+                document.getElementById('tableNameDisplay').innerText = "🛵 طلب توصيل خارجي";
+                document.getElementById('tableInfo').innerText = "سيتم الربط مع شركة Sendy";
+            } else {
+                document.getElementById('tableNameDisplay').innerText = `طاولة: ${tableNumber || '--'}`;
+                document.getElementById('tableInfo').innerText = "طلب داخلي";
+            }
+        }
+
+        async function loadCategories() {
+            try {
+                const response = await fetch(`${API_URL}/api/v1/Categories`, { headers: { 'Authorization': `Bearer ${token}` } });
+                const result = await response.json();
+                if (result.success) {
+                    const list = document.getElementById('categoriesList');
+                    result.data.forEach(cat => {
+                        const div = document.createElement('div');
+                        div.className = 'cat-item';
+                        div.innerText = cat.name;
+                        div.onclick = () => filterByCategory(cat.id, div);
+                        list.appendChild(div);
+                    });
+                }
+            } catch (err) { console.error(err); }
+        }
+
+        async function loadMenu() {
+            try {
+                const response = await fetch(`${API_URL}/api/v1/Menu`, { headers: { 'Authorization': `Bearer ${token}` } });
+                const result = await response.json();
+                if (result.success) {
+                    allItems = result.data.filter(i => i.isAvailable); // عرض المتوفر فقط
+                    renderItems(allItems);
+                }
+            } catch (err) { console.error(err); }
+        }
+
+        function renderItems(items) {
+            const grid = document.getElementById('itemsGrid');
+            grid.innerHTML = items.map(item => `
+                    <div class="item-card" onclick="addToCart('${item.id}', '${item.name}', ${item.price})">
+                        <img src="${item.imageUrl || 'https://placehold.co/150x100?text=Food'}" class="item-img">
+                        <div class="item-info">
+                            <div class="item-name">${item.name}</div>
+                            <div class="item-price">${item.price.toLocaleString()} د.ع</div>
+                        </div>
+                    </div>
+                `).join('');
+        }
+
+        function addToCart(id, name, price) {
+            const existing = cart.find(c => c.id === id);
+            if (existing) existing.qty++;
+            else cart.push({ id, name, price, qty: 1 });
+            renderCart();
+        }
+
+        function renderCart() {
+            const list = document.getElementById('cartList');
+            let total = 0;
+            list.innerHTML = cart.map((item, index) => {
+                total += (item.price * item.qty);
+                return `
+                        <div class="cart-item-row">
+                            <div><b>${item.name}</b><br><small>${item.price.toLocaleString()} × ${item.qty}</small></div>
+                            <div style="display:flex; align-items:center; gap:8px;">
+                                <button onclick="changeQty(${index}, -1)" style="width:25px; cursor:pointer;">-</button>
+                                <span>${item.qty}</span>
+                                <button onclick="changeQty(${index}, 1)" style="width:25px; cursor:pointer;">+</button>
+                            </div>
+                        </div>
+                    `;
+            }).join('');
+            document.getElementById('totalDisplay').innerText = `${total.toLocaleString()} د.ع`;
+            document.getElementById('cartCount').innerText = `${cart.length} أصناف`;
+        }
+
+        function changeQty(index, val) {
+            cart[index].qty += val;
+            if (cart[index].qty <= 0) cart.splice(index, 1);
+            renderCart();
+        }
+
+        // 🚀 إرسال الطلب النهائي (متوافق مع التعديلات الجديدة)
+        async function submitOrder() {
+            if (cart.length === 0) return alert("السلة فارغة!");
+
+            if (currentOrderType === 'Delivery') {
+                if (!document.getElementById('custPhone').value || !document.getElementById('custAddress').value) {
+                    alert("يرجى ملء رقم الهاتف والعنوان لطلبات التوصيل");
+                    return;
+                }
+            }
+
+            const btn = document.getElementById('btnSubmit');
+            btn.disabled = true;
+            btn.innerText = "جاري الحفظ والمزامنة... ⏳";
+
+            // تحضير الـ Payload ليتوافق مع CreateOrderRequestDto المحدث
+            const payload = {
+                tableId: currentOrderType === 'DiningIn' ? tableId : null,
+                orderType: currentOrderType, // يرسل كـ "DiningIn" أو "Delivery"
+                specialNotes: document.getElementById('orderNotes').value,
+                deliveryAddress: document.getElementById('custAddress').value,
+                customerPhoneNumber: document.getElementById('custPhone').value,
+                items: cart.map(i => ({
+                    menuItemId: i.id,
+                    quantity: i.qty,
+                    specialInstructions: ""
+                }))
+            };
+
+            try {
+                const response = await fetch(`${API_URL}/api/v1/Orders`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+                    body: JSON.stringify(payload)
+                });
+
+                const result = await response.json();
+                if (result.success) {
+                    alert("✅ تم إرسال الطلب بنجاح! سيصل للمطبخ فوراً.");
+                    cart = [];
+                    renderCart();
+                    document.getElementById('orderNotes').value = "";
+                } else {
+                    alert("❌ فشل الإرسال: " + result.message);
+                }
+            } catch (err) {
+                alert("❌ خطأ في الاتصال بالسيرفر");
+            } finally {
+                btn.disabled = false;
+                btn.innerText = "إرسال للمطبخ 👨‍🍳";
+            }
+        }
+
+        window.onload = () => { loadCategories(); loadMenu(); };
+    </script>
+</body>
+</html>

@@ -1,54 +1,59 @@
 ﻿using System.Text;
+using System.Text.Json;
+using System.Text.Json.Serialization;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
+using RestaurantSystem.Api.Configurations;
+using RestaurantSystem.Api.Filters;
+using RestaurantSystem.Api.Hubs;
+using RestaurantSystem.Api.Middlewares;
+using RestaurantSystem.Api.Services;
 using RestaurantSystem.Application;
+using RestaurantSystem.Application.Contracts.Signals;
 using RestaurantSystem.Infrastructure;
 using RestaurantSystem.Infrastructure.Data;
-using RestaurantSystem.Api.Filters;
-using RestaurantSystem.Api.Middlewares;
-using RestaurantSystem.Api.Configurations; // ✅ مهم جداً لاستدعاء SwaggerExtensions
-using System.Text.Json.Serialization;
+
+// حل مشكلة UTC مع PostgreSQL
+AppContext.SetSwitch("Npgsql.EnableLegacyTimestampBehavior", true);
 
 var builder = WebApplication.CreateBuilder(args);
 
-// ==========================================
-// 1. إعداد الـ Controllers والفلتر العالمي
-// ==========================================
+// ============================================================
+// 1) Controllers + JSON + SignalR
+// ============================================================
 builder.Services.AddControllers(options =>
 {
-    // 1. إضافة الفلتر الخاص بك
     options.Filters.Add<ValidationFilter>();
 })
-// 2. ✅ إضافة المحول السحري للنصوص (Enums as Strings)
 .AddJsonOptions(options =>
 {
     options.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter());
+    options.JsonSerializerOptions.ReferenceHandler = ReferenceHandler.IgnoreCycles;
+    options.JsonSerializerOptions.PropertyNamingPolicy = JsonNamingPolicy.CamelCase;
+    options.JsonSerializerOptions.WriteIndented = true;
 })
-// 3. إعدادات سلوك الـ API
 .ConfigureApiBehaviorOptions(options =>
 {
     options.SuppressModelStateInvalidFilter = true;
 });
 
-// ==========================================
-// 2. إعداد Swagger (استخدام الـ Extension Method)
-// ==========================================
-// تم نقل كل كود الـ AddSwaggerGen المعقد إلى ملف SwaggerExtensions
-builder.Services.AddSwaggerDocumentation();
+builder.Services.AddSignalR();
 
-// ==========================================
-// 3. تسجيل طبقات المشروع (Clean Architecture)
-// ==========================================
+// ============================================================
+// 2) Swagger + Application + Infrastructure
+// ============================================================
+builder.Services.AddSwaggerDocumentation();
 builder.Services.AddApplication();
 builder.Services.AddInfrastructure(builder.Configuration);
+builder.Services.AddScoped<IOrderNotificationService, OrderNotificationService>();
 
-// ✅ تحديث AutoMapper (بعد حذف الحزمة الإضافية القديمة)
-builder.Services.AddAutoMapper(AppDomain.CurrentDomain.GetAssemblies());
-// ==========================================
-// 4. إعدادات الحماية (Authentication & JWT)
-// ==========================================
+// ============================================================
+// 3) JWT Authentication
+// ============================================================
 var jwtKey = builder.Configuration["Jwt:Key"]
-             ?? throw new InvalidOperationException("خطأ: مفتاح JWT غير موجود في appsettings.json");
+             ?? throw new InvalidOperationException("JWT Key is missing.");
+
 var jwtIssuer = builder.Configuration["Jwt:Issuer"];
 var jwtAudience = builder.Configuration["Jwt:Audience"];
 
@@ -59,71 +64,110 @@ builder.Services.AddAuthentication(options =>
 })
 .AddJwtBearer(options =>
 {
+    options.RequireHttpsMetadata = false;
+    options.SaveToken = true;
+
     options.TokenValidationParameters = new TokenValidationParameters
     {
         ValidateIssuerSigningKey = true,
-        IssuerSigningKey = new SymmetricSecurityKey(Encoding.ASCII.GetBytes(jwtKey)),
-        ValidateIssuer = !string.IsNullOrEmpty(jwtIssuer),
+        IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtKey)),
+        ValidateIssuer = true,
         ValidIssuer = jwtIssuer,
-        ValidateAudience = !string.IsNullOrEmpty(jwtAudience),
+        ValidateAudience = true,
         ValidAudience = jwtAudience,
         ValidateLifetime = true,
         ClockSkew = TimeSpan.Zero
     };
+
+    options.Events = new JwtBearerEvents
+    {
+        OnMessageReceived = context =>
+        {
+            var accessToken = context.Request.Query["access_token"];
+            var path = context.HttpContext.Request.Path;
+
+            if (!string.IsNullOrWhiteSpace(accessToken) &&
+                path.StartsWithSegments("/orderHub"))
+            {
+                context.Token = accessToken;
+            }
+
+            return Task.CompletedTask;
+        }
+    };
 });
 
-// ==========================================
-// 5. إعداد CORS
-// ==========================================
+builder.Services.AddAuthorization();
+
+// ============================================================
+// 4) CORS
+// ============================================================
 builder.Services.AddCors(options =>
 {
-    options.AddPolicy("AllowAll", policy =>
+    options.AddPolicy("RestaurantAppPolicy", policy =>
     {
-        policy.AllowAnyOrigin()
+        policy.WithOrigins(
+                "http://localhost:3000",
+                "http://localhost:5173",
+                "http://127.0.0.1:5500")
               .AllowAnyMethod()
-              .AllowAnyHeader();
+              .AllowAnyHeader()
+              .AllowCredentials();
     });
 });
 
 var app = builder.Build();
 
-// ==========================================
-// 6. تفعيل الـ Middlewares بالترتيب الصحيح
-// ==========================================
-
+// ============================================================
+// 5) Middleware Pipeline
+// ============================================================
 app.UseMiddleware<ExceptionHandlingMiddleware>();
 app.UseMiddleware<LoggingMiddleware>();
 
 if (app.Environment.IsDevelopment())
 {
-    // ✅ استخدام الـ Extension Method التي أعددناها
-    // ستقوم بفتح Swagger على المسار الرئيسي (/) وبدون أخطاء 500
     app.UseSwaggerDocumentation();
 }
 
-app.UseHttpsRedirection();
-app.UseCors("AllowAll");
+app.UseDefaultFiles();
+app.UseStaticFiles();
+
+app.UseRouting();
+
+app.UseCors("RestaurantAppPolicy");
 
 app.UseAuthentication();
 app.UseAuthorization();
 
 app.MapControllers();
+app.MapHub<OrderHub>("/orderHub");
 
-// ==========================================
-// 7. تفعيل الـ Seed Data تلقائياً
-// ==========================================
+// ============================================================
+// 6) Database init + seeding
+// ============================================================
 using (var scope = app.Services.CreateScope())
 {
     var services = scope.ServiceProvider;
+
     try
     {
         var context = services.GetRequiredService<ApplicationDbContext>();
+
+        // إذا عندك migrations جاهزة فالأفضل هذا:
+        // await context.Database.MigrateAsync();
+
+        // وإذا أنت حاليًا تعتمد EnsureCreated بالمشروع، خليه مؤقتًا:
+        await context.Database.MigrateAsync();
+
         await DbInitializer.SeedAsync(context);
-        Console.WriteLine("---> Database Seeding Completed Successfully.");
+
+        var logger = services.GetRequiredService<ILogger<Program>>();
+        logger.LogInformation("✅ System is ready. Database initialized and seeded.");
     }
     catch (Exception ex)
     {
-        Console.WriteLine($"---> Error during seeding: {ex.Message}");
+        var logger = services.GetRequiredService<ILogger<Program>>();
+        logger.LogError(ex, "❌ Database initialization failed.");
     }
 }
 

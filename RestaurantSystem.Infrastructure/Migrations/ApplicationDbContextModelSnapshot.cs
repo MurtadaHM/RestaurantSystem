@@ -34,6 +34,9 @@ namespace RestaurantSystem.Infrastructure.Migrations
                     b.Property<DateTime?>("DeletedAt")
                         .HasColumnType("timestamp with time zone");
 
+                    b.Property<Guid>("DepartmentId")
+                        .HasColumnType("uuid");
+
                     b.Property<string>("Description")
                         .HasMaxLength(500)
                         .HasColumnType("character varying(500)");
@@ -60,52 +63,100 @@ namespace RestaurantSystem.Infrastructure.Migrations
 
                     b.HasKey("Id");
 
+                    b.HasIndex("DepartmentId");
+
                     b.HasIndex("DisplayOrder")
                         .HasDatabaseName("IX_Categories_DisplayOrder");
 
                     b.ToTable("Categories", (string)null);
+                });
 
-                    b.HasData(
-                        new
-                        {
-                            Id = new Guid("11111111-1111-1111-1111-111111111111"),
-                            CreatedAt = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
-                            Description = "أشهى المقبلات العربية",
-                            DisplayOrder = 1,
-                            ImageUrl = "https://placehold.co/400x300?text=Appetizers",
-                            IsDeleted = false,
-                            Name = "المقبلات"
-                        },
-                        new
-                        {
-                            Id = new Guid("22222222-2222-2222-2222-222222222222"),
-                            CreatedAt = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
-                            Description = "أطباق رئيسية شهية",
-                            DisplayOrder = 2,
-                            ImageUrl = "https://placehold.co/400x300?text=Main+Dishes",
-                            IsDeleted = false,
-                            Name = "الأطباق الرئيسية"
-                        },
-                        new
-                        {
-                            Id = new Guid("33333333-3333-3333-3333-333333333333"),
-                            CreatedAt = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
-                            Description = "مشروبات باردة وساخنة",
-                            DisplayOrder = 3,
-                            ImageUrl = "https://placehold.co/400x300?text=Drinks",
-                            IsDeleted = false,
-                            Name = "المشروبات"
-                        },
-                        new
-                        {
-                            Id = new Guid("44444444-4444-4444-4444-444444444444"),
-                            CreatedAt = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
-                            Description = "أحلى الحلويات الشرقية",
-                            DisplayOrder = 4,
-                            ImageUrl = "https://placehold.co/400x300?text=Desserts",
-                            IsDeleted = false,
-                            Name = "الحلويات"
-                        });
+            modelBuilder.Entity("RestaurantSystem.Domain.Entities.Department", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTime?>("DeletedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Description")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<string>("Icon")
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Name")
+                        .IsUnique()
+                        .HasDatabaseName("IX_Departments_Name");
+
+                    b.ToTable("Departments", (string)null);
+                });
+
+            modelBuilder.Entity("RestaurantSystem.Domain.Entities.Ingredient", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<decimal>("CurrentStock")
+                        .HasPrecision(18, 3)
+                        .HasColumnType("numeric(18,3)");
+
+                    b.Property<DateTime?>("DeletedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("boolean");
+
+                    b.Property<decimal>("MinThreshold")
+                        .HasPrecision(18, 3)
+                        .HasColumnType("numeric(18,3)");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<string>("Unit")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<decimal>("UnitPrice")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("Ingredients", (string)null);
                 });
 
             modelBuilder.Entity("RestaurantSystem.Domain.Entities.MenuItem", b =>
@@ -125,6 +176,9 @@ namespace RestaurantSystem.Infrastructure.Migrations
 
                     b.Property<DateTime?>("DeletedAt")
                         .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("DepartmentId")
+                        .HasColumnType("uuid");
 
                     b.Property<string>("Description")
                         .HasMaxLength(1000)
@@ -157,7 +211,7 @@ namespace RestaurantSystem.Infrastructure.Migrations
                         .HasDefaultValue(15);
 
                     b.Property<decimal>("Price")
-                        .HasColumnType("decimal(18,2)");
+                        .HasColumnType("numeric(18,2)");
 
                     b.Property<DateTime?>("UpdatedAt")
                         .HasColumnType("timestamp with time zone");
@@ -167,7 +221,34 @@ namespace RestaurantSystem.Infrastructure.Migrations
                     b.HasIndex("CategoryId")
                         .HasDatabaseName("IX_MenuItems_CategoryId");
 
+                    b.HasIndex("DepartmentId")
+                        .HasDatabaseName("IX_MenuItems_DepartmentId");
+
                     b.ToTable("MenuItems", (string)null);
+                });
+
+            modelBuilder.Entity("RestaurantSystem.Domain.Entities.MenuItemIngredient", b =>
+                {
+                    b.Property<Guid>("MenuItemId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("IngredientId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp without time zone");
+
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid");
+
+                    b.Property<decimal>("Quantity")
+                        .HasColumnType("numeric(18,3)");
+
+                    b.HasKey("MenuItemId", "IngredientId");
+
+                    b.HasIndex("IngredientId");
+
+                    b.ToTable("MenuItemIngredients", (string)null);
                 });
 
             modelBuilder.Entity("RestaurantSystem.Domain.Entities.Order", b =>
@@ -179,23 +260,79 @@ namespace RestaurantSystem.Infrastructure.Migrations
                     b.Property<DateTime?>("CompletedAt")
                         .HasColumnType("timestamp with time zone");
 
+                    b.Property<string>("CourierName")
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<string>("CourierPhoneNumber")
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)");
+
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("CustomerPhoneNumber")
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)");
 
                     b.Property<DateTime?>("DeletedAt")
                         .HasColumnType("timestamp with time zone");
 
+                    b.Property<string>("DeliveryAddress")
+                        .HasMaxLength(1000)
+                        .HasColumnType("character varying(1000)");
+
                     b.Property<decimal?>("DeliveryFee")
-                        .HasColumnType("decimal(18,2)");
+                        .HasColumnType("numeric(18,2)");
 
                     b.Property<DateTime?>("ExpectedReadyTime")
                         .HasColumnType("timestamp with time zone");
 
+                    b.Property<string>("ExternalDeliveryStatus")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<Guid?>("ExternalOrderId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("ExternalPublicId")
+                        .HasColumnType("text");
+
                     b.Property<bool>("IsDeleted")
                         .HasColumnType("boolean");
 
+                    b.Property<bool>("IsSyncedToExternalProvider")
+                        .HasColumnType("boolean");
+
+                    b.Property<DateTime?>("LastExternalSyncDate")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTime?>("LastPartnerSyncDate")
+                        .HasColumnType("timestamp without time zone");
+
+                    b.Property<double?>("Latitude")
+                        .HasColumnType("double precision");
+
+                    b.Property<double?>("Longitude")
+                        .HasColumnType("double precision");
+
+                    b.Property<int>("OrderNumber")
+                        .HasColumnType("integer");
+
                     b.Property<string>("OrderType")
                         .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("PartnerOrderId")
+                        .HasColumnType("text");
+
+                    b.Property<string>("PartnerRestaurantId")
+                        .HasColumnType("text");
+
+                    b.Property<string>("PartnerSource")
+                        .HasColumnType("text");
+
+                    b.Property<string>("PartnerUserId")
                         .HasColumnType("text");
 
                     b.Property<string>("SpecialNotes")
@@ -204,15 +341,16 @@ namespace RestaurantSystem.Infrastructure.Migrations
 
                     b.Property<string>("Status")
                         .IsRequired()
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("text")
-                        .HasDefaultValue("Pending");
+                        .HasColumnType("text");
 
                     b.Property<Guid?>("TableId")
                         .HasColumnType("uuid");
 
                     b.Property<decimal>("TotalAmount")
-                        .HasColumnType("decimal(18,2)");
+                        .HasColumnType("numeric(18,2)");
+
+                    b.Property<string>("TrackingUrl")
+                        .HasColumnType("text");
 
                     b.Property<DateTime?>("UpdatedAt")
                         .HasColumnType("timestamp with time zone");
@@ -222,11 +360,13 @@ namespace RestaurantSystem.Infrastructure.Migrations
 
                     b.HasKey("Id");
 
+                    b.HasIndex("ExternalOrderId")
+                        .HasDatabaseName("IX_Orders_ExternalOrderId");
+
                     b.HasIndex("Status")
                         .HasDatabaseName("IX_Orders_Status");
 
-                    b.HasIndex("TableId")
-                        .HasDatabaseName("IX_Orders_TableId");
+                    b.HasIndex("TableId");
 
                     b.HasIndex("UserId")
                         .HasDatabaseName("IX_Orders_UserId");
@@ -241,10 +381,10 @@ namespace RestaurantSystem.Infrastructure.Migrations
                         .HasColumnType("uuid");
 
                     b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("timestamp with time zone");
+                        .HasColumnType("timestamp without time zone");
 
                     b.Property<DateTime?>("DeletedAt")
-                        .HasColumnType("timestamp with time zone");
+                        .HasColumnType("timestamp without time zone");
 
                     b.Property<bool>("IsDeleted")
                         .HasColumnType("boolean");
@@ -265,7 +405,7 @@ namespace RestaurantSystem.Infrastructure.Migrations
                         .HasColumnType("text");
 
                     b.Property<DateTime?>("UpdatedAt")
-                        .HasColumnType("timestamp with time zone");
+                        .HasColumnType("timestamp without time zone");
 
                     b.HasKey("Id");
 
@@ -283,7 +423,7 @@ namespace RestaurantSystem.Infrastructure.Migrations
                         .HasColumnType("uuid");
 
                     b.Property<decimal>("Amount")
-                        .HasColumnType("decimal(18,2)");
+                        .HasColumnType("numeric(18,2)");
 
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("timestamp with time zone");
@@ -310,9 +450,7 @@ namespace RestaurantSystem.Infrastructure.Migrations
 
                     b.Property<string>("Status")
                         .IsRequired()
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("text")
-                        .HasDefaultValue("Pending");
+                        .HasColumnType("text");
 
                     b.Property<string>("TransactionReference")
                         .HasMaxLength(100)
@@ -330,6 +468,107 @@ namespace RestaurantSystem.Infrastructure.Migrations
                     b.ToTable("Payments", (string)null);
                 });
 
+            modelBuilder.Entity("RestaurantSystem.Domain.Entities.Reservation", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("CustomerName")
+                        .IsRequired()
+                        .HasMaxLength(150)
+                        .HasColumnType("character varying(150)");
+
+                    b.Property<string>("CustomerPhone")
+                        .IsRequired()
+                        .HasMaxLength(11)
+                        .HasColumnType("character(11)")
+                        .IsFixedLength();
+
+                    b.Property<DateTime?>("DeletedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int>("GuestCount")
+                        .HasColumnType("integer");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("boolean");
+
+                    b.Property<DateTime>("ReservationDate")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("SpecialRequests")
+                        .HasColumnType("text");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<Guid>("TableId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("TableId");
+
+                    b.ToTable("Reservations", (string)null);
+                });
+
+            modelBuilder.Entity("RestaurantSystem.Domain.Entities.StockMovement", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTime?>("DeletedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("IngredientId")
+                        .HasColumnType("uuid");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("boolean");
+
+                    b.Property<DateTime>("MovementDate")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<decimal>("Quantity")
+                        .HasColumnType("numeric(18,3)");
+
+                    b.Property<string>("Reason")
+                        .HasMaxLength(250)
+                        .HasColumnType("character varying(250)");
+
+                    b.Property<string>("Type")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("UserId")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("IngredientId");
+
+                    b.HasIndex("MovementDate");
+
+                    b.HasIndex("UserId");
+
+                    b.ToTable("StockMovements", (string)null);
+                });
+
             modelBuilder.Entity("RestaurantSystem.Domain.Entities.Table", b =>
                 {
                     b.Property<Guid>("Id")
@@ -339,16 +578,30 @@ namespace RestaurantSystem.Infrastructure.Migrations
                     b.Property<int>("Capacity")
                         .HasColumnType("integer");
 
+                    b.Property<string>("Code")
+                        .IsRequired()
+                        .HasColumnType("text");
+
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("timestamp with time zone");
 
                     b.Property<DateTime?>("DeletedAt")
                         .HasColumnType("timestamp with time zone");
 
+                    b.Property<int?>("FloorNumber")
+                        .HasColumnType("integer");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("boolean");
+
                     b.Property<bool>("IsDeleted")
                         .HasColumnType("boolean");
 
+                    b.Property<bool>("IsOrderingEnabled")
+                        .HasColumnType("boolean");
+
                     b.Property<string>("Location")
+                        .IsRequired()
                         .HasMaxLength(100)
                         .HasColumnType("character varying(100)");
 
@@ -358,9 +611,7 @@ namespace RestaurantSystem.Infrastructure.Migrations
 
                     b.Property<string>("Status")
                         .IsRequired()
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("text")
-                        .HasDefaultValue("Available");
+                        .HasColumnType("text");
 
                     b.Property<string>("TableNumber")
                         .IsRequired()
@@ -369,6 +620,9 @@ namespace RestaurantSystem.Infrastructure.Migrations
 
                     b.Property<DateTime?>("UpdatedAt")
                         .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Zone")
+                        .HasColumnType("text");
 
                     b.HasKey("Id");
 
@@ -386,8 +640,11 @@ namespace RestaurantSystem.Infrastructure.Migrations
                         {
                             Id = new Guid("aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa"),
                             Capacity = 2,
+                            Code = "",
                             CreatedAt = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
+                            IsActive = true,
                             IsDeleted = false,
+                            IsOrderingEnabled = true,
                             Location = "بجانب النافذة",
                             Notes = "طاولة مريحة بإطلالة جميلة",
                             Status = "Available",
@@ -397,8 +654,11 @@ namespace RestaurantSystem.Infrastructure.Migrations
                         {
                             Id = new Guid("bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb"),
                             Capacity = 4,
+                            Code = "",
                             CreatedAt = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
+                            IsActive = true,
                             IsDeleted = false,
+                            IsOrderingEnabled = true,
                             Location = "الوسط",
                             Notes = "طاولة مثالية للعائلات",
                             Status = "Available",
@@ -408,8 +668,11 @@ namespace RestaurantSystem.Infrastructure.Migrations
                         {
                             Id = new Guid("cccccccc-cccc-cccc-cccc-cccccccccccc"),
                             Capacity = 6,
+                            Code = "",
                             CreatedAt = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
+                            IsActive = true,
                             IsDeleted = false,
+                            IsOrderingEnabled = true,
                             Location = "الزاوية",
                             Notes = "طاولة ممتازة للخصوصية",
                             Status = "Available",
@@ -419,8 +682,11 @@ namespace RestaurantSystem.Infrastructure.Migrations
                         {
                             Id = new Guid("dddddddd-dddd-dddd-dddd-dddddddddddd"),
                             Capacity = 8,
+                            Code = "",
                             CreatedAt = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
+                            IsActive = true,
                             IsDeleted = false,
+                            IsOrderingEnabled = true,
                             Location = "قاعة VIP",
                             Notes = "طاولة فاخرة خاصة لكبار الزوار",
                             Status = "Available",
@@ -435,18 +701,16 @@ namespace RestaurantSystem.Infrastructure.Migrations
                         .HasColumnType("uuid");
 
                     b.Property<string>("Address")
-                        .HasMaxLength(500)
-                        .HasColumnType("character varying(500)");
+                        .HasColumnType("text");
 
                     b.Property<string>("City")
-                        .HasMaxLength(100)
-                        .HasColumnType("character varying(100)");
+                        .HasColumnType("text");
 
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("timestamp with time zone");
 
                     b.Property<DateTime?>("DeletedAt")
-                        .HasColumnType("timestamp with time zone");
+                        .HasColumnType("timestamp without time zone");
 
                     b.Property<string>("Email")
                         .IsRequired()
@@ -467,7 +731,7 @@ namespace RestaurantSystem.Infrastructure.Migrations
                         .HasColumnType("boolean");
 
                     b.Property<DateTime?>("LastLoginAt")
-                        .HasColumnType("timestamp with time zone");
+                        .HasColumnType("timestamp without time zone");
 
                     b.Property<string>("LastName")
                         .IsRequired()
@@ -479,21 +743,17 @@ namespace RestaurantSystem.Infrastructure.Migrations
                         .HasColumnType("text");
 
                     b.Property<string>("PhoneNumber")
-                        .HasMaxLength(20)
-                        .HasColumnType("character varying(20)");
+                        .HasColumnType("text");
 
                     b.Property<string>("ProfileImageUrl")
-                        .HasMaxLength(500)
-                        .HasColumnType("character varying(500)");
+                        .HasColumnType("text");
 
                     b.Property<string>("Role")
                         .IsRequired()
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("text")
-                        .HasDefaultValue("Customer");
+                        .HasColumnType("text");
 
                     b.Property<DateTime?>("UpdatedAt")
-                        .HasColumnType("timestamp with time zone");
+                        .HasColumnType("timestamp without time zone");
 
                     b.HasKey("Id");
 
@@ -502,21 +762,17 @@ namespace RestaurantSystem.Infrastructure.Migrations
                         .HasDatabaseName("IX_Users_Email");
 
                     b.ToTable("Users", (string)null);
+                });
 
-                    b.HasData(
-                        new
-                        {
-                            Id = new Guid("eeeeeeee-eeee-eeee-eeee-eeeeeeeeeeee"),
-                            CreatedAt = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
-                            Email = "admin@restaurant.com",
-                            FirstName = "Admin",
-                            IsActive = true,
-                            IsDeleted = false,
-                            LastName = "User",
-                            PasswordHash = "$2a$11$Xn3XqJ8Zv5kL2mN7pR9sOeKjHgFdCbA4wY6uT1iE0oP3qS5vU8yW",
-                            PhoneNumber = "0500000000",
-                            Role = "Admin"
-                        });
+            modelBuilder.Entity("RestaurantSystem.Domain.Entities.Category", b =>
+                {
+                    b.HasOne("RestaurantSystem.Domain.Entities.Department", "Department")
+                        .WithMany()
+                        .HasForeignKey("DepartmentId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Department");
                 });
 
             modelBuilder.Entity("RestaurantSystem.Domain.Entities.MenuItem", b =>
@@ -527,7 +783,34 @@ namespace RestaurantSystem.Infrastructure.Migrations
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
+                    b.HasOne("RestaurantSystem.Domain.Entities.Department", "Department")
+                        .WithMany("MenuItems")
+                        .HasForeignKey("DepartmentId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
                     b.Navigation("Category");
+
+                    b.Navigation("Department");
+                });
+
+            modelBuilder.Entity("RestaurantSystem.Domain.Entities.MenuItemIngredient", b =>
+                {
+                    b.HasOne("RestaurantSystem.Domain.Entities.Ingredient", "Ingredient")
+                        .WithMany("MenuItemIngredients")
+                        .HasForeignKey("IngredientId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("RestaurantSystem.Domain.Entities.MenuItem", "MenuItem")
+                        .WithMany("MenuItemIngredients")
+                        .HasForeignKey("MenuItemId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Ingredient");
+
+                    b.Navigation("MenuItem");
                 });
 
             modelBuilder.Entity("RestaurantSystem.Domain.Entities.Order", b =>
@@ -578,13 +861,54 @@ namespace RestaurantSystem.Infrastructure.Migrations
                     b.Navigation("Order");
                 });
 
+            modelBuilder.Entity("RestaurantSystem.Domain.Entities.Reservation", b =>
+                {
+                    b.HasOne("RestaurantSystem.Domain.Entities.Table", "Table")
+                        .WithMany("Reservations")
+                        .HasForeignKey("TableId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Table");
+                });
+
+            modelBuilder.Entity("RestaurantSystem.Domain.Entities.StockMovement", b =>
+                {
+                    b.HasOne("RestaurantSystem.Domain.Entities.Ingredient", "Ingredient")
+                        .WithMany("StockMovements")
+                        .HasForeignKey("IngredientId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("RestaurantSystem.Domain.Entities.User", null)
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.Navigation("Ingredient");
+                });
+
             modelBuilder.Entity("RestaurantSystem.Domain.Entities.Category", b =>
                 {
                     b.Navigation("MenuItems");
                 });
 
+            modelBuilder.Entity("RestaurantSystem.Domain.Entities.Department", b =>
+                {
+                    b.Navigation("MenuItems");
+                });
+
+            modelBuilder.Entity("RestaurantSystem.Domain.Entities.Ingredient", b =>
+                {
+                    b.Navigation("MenuItemIngredients");
+
+                    b.Navigation("StockMovements");
+                });
+
             modelBuilder.Entity("RestaurantSystem.Domain.Entities.MenuItem", b =>
                 {
+                    b.Navigation("MenuItemIngredients");
+
                     b.Navigation("OrderItems");
                 });
 
@@ -598,6 +922,8 @@ namespace RestaurantSystem.Infrastructure.Migrations
             modelBuilder.Entity("RestaurantSystem.Domain.Entities.Table", b =>
                 {
                     b.Navigation("Orders");
+
+                    b.Navigation("Reservations");
                 });
 
             modelBuilder.Entity("RestaurantSystem.Domain.Entities.User", b =>

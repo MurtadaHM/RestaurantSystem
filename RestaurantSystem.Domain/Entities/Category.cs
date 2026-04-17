@@ -19,5 +19,8 @@ namespace RestaurantSystem.Domain.Entities
 
         // Navigation Properties
         public ICollection<MenuItem> MenuItems { get; set; } = new List<MenuItem>();
+
+        public Guid DepartmentId { get; set; } // الربط بالقسم
+        public virtual Department? Department { get; set; }
     }
 }

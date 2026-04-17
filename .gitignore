@@ -7,5 +7,9 @@
 *.userosscache
 *.sln.docstates
 
-## [كود لإهمال ملفات الإعدادات المحلية]
+## [كود لإهمال ملفات الإعدادات المحلية والحساسة]
+appsettings.json
 appsettings.Development.json
+RestaurantSystem.Api/appsettings.json
+RestaurantSystem.Api/appsettings.json
+RestaurantSystem.Api/appsettings.json

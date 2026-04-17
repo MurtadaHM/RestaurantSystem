@@ -1,6 +1,7 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 using RestaurantSystem.Domain.Entities;
+using System;
 
 namespace RestaurantSystem.Infrastructure.Data.Configurations
 {
@@ -8,47 +9,34 @@ namespace RestaurantSystem.Infrastructure.Data.Configurations
     {
         public void Configure(EntityTypeBuilder<MenuItem> builder)
         {
-            // ──────────────────────────────────────────
-            // Table
-            // ──────────────────────────────────────────
             builder.ToTable("MenuItems");
 
-            // ──────────────────────────────────────────
-            // Primary Key
-            // ──────────────────────────────────────────
             builder.HasKey(m => m.Id);
+            builder.Property(m => m.Id).HasColumnType("uuid");
 
-            // ──────────────────────────────────────────
-            // Properties
-            // ──────────────────────────────────────────
             builder.Property(m => m.Name)
                 .IsRequired()
                 .HasMaxLength(200)
                 .HasColumnType("character varying(200)");
 
             builder.Property(m => m.Description)
-                .IsRequired(false)
-                .HasMaxLength(1000)
-                .HasColumnType("character varying(1000)");
+                .HasMaxLength(1000);
 
+            // 💰 ضبط السعر لـ PostgreSQL
             builder.Property(m => m.Price)
                 .IsRequired()
-                .HasColumnType("decimal(18,2)");
+                .HasColumnType("numeric(18,2)");
 
             builder.Property(m => m.ImageUrl)
-                .IsRequired(false)
-                .HasMaxLength(500)
-                .HasColumnType("character varying(500)");
+                .HasMaxLength(500);
 
             builder.Property(m => m.Ingredients)
-                .IsRequired(false)
-                .HasMaxLength(1000)
-                .HasColumnType("character varying(1000)");
+                .HasMaxLength(1000);
 
             builder.Property(m => m.Calories)
-                .IsRequired(false)
                 .HasColumnType("integer");
 
+            // ✅ هنا DefaultValue مسموح لأن الحقل boolean وليس Enum
             builder.Property(m => m.IsAvailable)
                 .HasColumnType("boolean")
                 .HasDefaultValue(true);
@@ -57,43 +45,33 @@ namespace RestaurantSystem.Infrastructure.Data.Configurations
                 .HasColumnType("integer")
                 .HasDefaultValue(15);
 
-            builder.Property(m => m.IsDeleted)
-                .HasColumnType("boolean");
-
+            // 🕒 التواقيت (مهمة جداً لنجاح الـ Seed)
+            builder.Property(m => m.IsDeleted).HasColumnType("boolean");
             builder.Property(m => m.CreatedAt)
                 .IsRequired()
                 .HasColumnType("timestamp with time zone");
 
-            builder.Property(m => m.UpdatedAt)
-                .HasColumnType("timestamp with time zone");   // ✅ nullable
+            builder.Property(m => m.UpdatedAt).HasColumnType("timestamp with time zone");
+            builder.Property(m => m.DeletedAt).HasColumnType("timestamp with time zone");
 
-            builder.Property(m => m.DeletedAt)
-                .HasColumnType("timestamp with time zone");   // ✅ nullable
+            // 🔍 الفهارس
+            builder.HasIndex(m => m.CategoryId).HasDatabaseName("IX_MenuItems_CategoryId");
+            builder.HasIndex(m => m.DepartmentId).HasDatabaseName("IX_MenuItems_DepartmentId");
 
-            // ──────────────────────────────────────────
-            // Indexes
-            // ──────────────────────────────────────────
-            builder.HasIndex(m => m.CategoryId)
-                .HasDatabaseName("IX_MenuItems_CategoryId");
+            // 🤝 العلاقات (Relationships)
 
-            // ──────────────────────────────────────────
-            // Relationships
-            // ──────────────────────────────────────────
-
-            // ✅ MenuItem → Category (Many-to-One)
+            // MenuItem → Category
             builder.HasOne(m => m.Category)
                 .WithMany(c => c.MenuItems)
                 .HasForeignKey(m => m.CategoryId)
-                .OnDelete(DeleteBehavior.Restrict);   // ✅ نمنع حذف Category لو فيها Items
+                .OnDelete(DeleteBehavior.Restrict);
 
-            // ──────────────────────────────────────────
-            // Computed Properties — Ignored
-            // ──────────────────────────────────────────
-            // لا يوجد Computed Properties في MenuItem
+            // 🔥 إضافة علاقة القسم (لأنك استخدمتها في الـ Seed)
+            builder.HasOne(m => m.Department)
+                .WithMany(d => d.MenuItems)
+                .HasForeignKey(m => m.DepartmentId)
+                .OnDelete(DeleteBehavior.Restrict);
 
-            // ──────────────────────────────────────────
-            // Soft Delete Filter
-            // ──────────────────────────────────────────
             builder.HasQueryFilter(m => !m.IsDeleted);
         }
     }

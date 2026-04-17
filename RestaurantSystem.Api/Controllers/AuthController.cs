@@ -26,6 +26,7 @@ namespace RestaurantSystem.Api.Controllers
         public async Task<ActionResult<ApiResponse<AuthResponseDto>>> Login([FromBody] LoginRequestDto request)
         {
             _logger.LogInformation("محاولة تسجيل دخول: {Email}", request.Email);
+
             var result = await _authService.LoginAsync(request);
 
             if (!result.IsSuccess)
@@ -41,6 +42,7 @@ namespace RestaurantSystem.Api.Controllers
         public async Task<ActionResult<ApiResponse<AuthResponseDto>>> Register([FromBody] RegisterRequestDto request)
         {
             _logger.LogInformation("محاولة إنشاء حساب جديد: {Email}", request.Email);
+
             var result = await _authService.RegisterAsync(request);
 
             if (!result.IsSuccess)
@@ -56,7 +58,8 @@ namespace RestaurantSystem.Api.Controllers
         public async Task<ActionResult<ApiResponse<object>>> Logout()
         {
             var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
-            if (string.IsNullOrEmpty(userId)) return Unauthorized();
+            if (string.IsNullOrEmpty(userId))
+                return Unauthorized();
 
             await _authService.LogoutAsync(userId);
             _logger.LogInformation("تم تسجيل الخروج للمستخدم: {UserId}", userId);
@@ -69,9 +72,9 @@ namespace RestaurantSystem.Api.Controllers
         public ActionResult<ApiResponse<UserAuthDto>> GetCurrentUser()
         {
             var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
-            if (string.IsNullOrEmpty(userId)) return Unauthorized();
+            if (string.IsNullOrEmpty(userId))
+                return Unauthorized();
 
-            // ملاحظة لمرتضى: تأكد أنك أضفت FirstName و LastName في الـ Claims عند توليد الـ Token
             var user = new UserAuthDto
             {
                 Id = Guid.Parse(userId),

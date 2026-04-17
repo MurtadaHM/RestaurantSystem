@@ -1,0 +1,960 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>إدارة الحجوزات | Restaurant System</title>
+
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+    <link rel="stylesheet" href="https://npmcdn.com/flatpickr/dist/themes/material_blue.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <style>
+        :root {
+            --bg: #f6f3ee;
+            --card: #ffffff;
+            --card-soft: #fffaf4;
+            --text: #2d3436;
+            --muted: #7b8794;
+            --primary: #3b2a1f;
+            --primary-2: #6b4423;
+            --accent: #d98f47;
+            --accent-soft: #f5e2cf;
+            --success: #1f9d74;
+            --warning: #f59e0b;
+            --danger: #d63031;
+            --border: #eadcc9;
+            --shadow: 0 14px 38px rgba(62, 37, 19, 0.10);
+            --radius-xl: 24px;
+            --radius-lg: 18px;
+            --radius-md: 14px;
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            padding: 20px;
+            font-family: "Segoe UI", Tahoma, sans-serif;
+            color: var(--text);
+            background: radial-gradient(circle at top right, #f8ead8 0%, transparent 22%), radial-gradient(circle at top left, #f0dcc4 0%, transparent 18%), var(--bg);
+        }
+
+        .page-shell {
+            max-width: 1480px;
+            margin: 0 auto;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #2f241b, #5e3d23);
+            color: white;
+            padding: 18px 22px;
+            border-radius: 22px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 14px;
+            flex-wrap: wrap;
+            box-shadow: var(--shadow);
+            margin-bottom: 22px;
+        }
+
+        .header-title {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+        }
+
+        .header-icon {
+            width: 56px;
+            height: 56px;
+            border-radius: 18px;
+            display: grid;
+            place-items: center;
+            background: rgba(255,255,255,0.12);
+            font-size: 1.4rem;
+            color: #ffd8aa;
+            flex-shrink: 0;
+        }
+
+        .header h2 {
+            margin: 0 0 6px;
+            font-size: 1.35rem;
+        }
+
+        .header p {
+            margin: 0;
+            color: #f3e8dc;
+            font-size: 0.93rem;
+        }
+
+        .header-actions {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        .header-btn {
+            border: 1px solid rgba(255,255,255,0.32);
+            background: rgba(255,255,255,0.08);
+            color: white;
+            padding: 10px 14px;
+            border-radius: 12px;
+            cursor: pointer;
+            font-weight: 800;
+            transition: .2s ease;
+        }
+
+            .header-btn:hover {
+                background: rgba(255,255,255,0.16);
+            }
+
+        .page-message {
+            margin-bottom: 16px;
+            padding: 12px 14px;
+            border-radius: 12px;
+            display: none;
+            font-weight: 800;
+        }
+
+            .page-message.success {
+                display: block;
+                background: #ebfff7;
+                color: var(--success);
+                border: 1px solid #c9f0df;
+            }
+
+            .page-message.error {
+                display: block;
+                background: #fff5f5;
+                color: var(--danger);
+                border: 1px solid #f3c2c2;
+            }
+
+        .layout {
+            display: grid;
+            grid-template-columns: 420px 1fr;
+            gap: 22px;
+        }
+
+        .panel, .content-card {
+            background: var(--card);
+            border-radius: var(--radius-xl);
+            box-shadow: var(--shadow);
+            border: 1px solid rgba(139, 69, 19, 0.06);
+        }
+
+        .panel {
+            padding: 22px;
+            height: fit-content;
+            position: sticky;
+            top: 20px;
+        }
+
+            .panel h3,
+            .content-card h3 {
+                margin: 0 0 8px 0;
+            }
+
+        .panel-subtitle {
+            color: var(--muted);
+            font-size: 0.92rem;
+            margin-bottom: 18px;
+            line-height: 1.7;
+        }
+
+        label {
+            display: block;
+            font-size: 0.9rem;
+            font-weight: 800;
+            margin-bottom: 7px;
+            color: #4b5563;
+        }
+
+        input, select, textarea {
+            width: 100%;
+            padding: 11px 12px;
+            margin: 0 0 14px;
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            background: #fffdf9;
+            color: var(--text);
+            font: inherit;
+            transition: border-color .2s ease, box-shadow .2s ease;
+        }
+
+            input:focus, select:focus, textarea:focus {
+                outline: none;
+                border-color: var(--accent);
+                box-shadow: 0 0 0 4px rgba(217, 143, 71, 0.12);
+            }
+
+        textarea {
+            resize: vertical;
+            min-height: 86px;
+        }
+
+        .form-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+        }
+
+        .form-group.full {
+            grid-column: 1 / -1;
+        }
+
+        .panel-actions {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            margin-top: 4px;
+        }
+
+        .btn {
+            border: none;
+            border-radius: 12px;
+            padding: 12px 14px;
+            cursor: pointer;
+            font-weight: 800;
+            font-size: 0.95rem;
+            transition: .2s ease;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, var(--primary), var(--primary-2));
+            color: white;
+        }
+
+            .btn-primary:hover {
+                transform: translateY(-1px);
+                filter: brightness(1.03);
+            }
+
+        .btn-secondary {
+            background: #eef2f7;
+            color: #334155;
+        }
+
+            .btn-secondary:hover {
+                background: #e2e8f0;
+            }
+
+        .content-card {
+            padding: 20px;
+        }
+
+        .stats-row {
+            display: grid;
+            grid-template-columns: repeat(4, minmax(140px, 1fr));
+            gap: 12px;
+            margin-bottom: 18px;
+        }
+
+        .mini-stat {
+            background: linear-gradient(180deg, #fffdf9, #fff6eb);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            padding: 14px;
+        }
+
+            .mini-stat .label {
+                color: var(--muted);
+                font-size: .84rem;
+                margin-bottom: 6px;
+            }
+
+            .mini-stat .value {
+                font-size: 1.45rem;
+                font-weight: 900;
+            }
+
+        .tools {
+            display: flex;
+            justify-content: space-between;
+            gap: 12px;
+            align-items: center;
+            flex-wrap: wrap;
+            margin-bottom: 18px;
+        }
+
+        .tools-left,
+        .tools-right {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            align-items: center;
+        }
+
+        .filter-btn {
+            border: 1px solid var(--border);
+            background: white;
+            color: var(--text);
+            padding: 10px 14px;
+            border-radius: 999px;
+            cursor: pointer;
+            font-weight: 800;
+            transition: .2s ease;
+        }
+
+            .filter-btn.active {
+                background: linear-gradient(135deg, var(--primary), var(--primary-2));
+                color: white;
+                border-color: transparent;
+            }
+
+        .search-input {
+            min-width: 240px;
+        }
+
+        .reservations-list {
+            display: grid;
+            gap: 14px;
+        }
+
+        .reservation-card {
+            border: 1px solid var(--border);
+            background: linear-gradient(180deg, #fffefb, #fff8ef);
+            border-radius: 20px;
+            padding: 16px;
+            display: grid;
+            grid-template-columns: 110px 1fr auto;
+            gap: 16px;
+            align-items: start;
+            transition: .2s ease;
+        }
+
+            .reservation-card:hover {
+                transform: translateY(-2px);
+                box-shadow: 0 10px 22px rgba(80, 50, 20, 0.06);
+            }
+
+        .reservation-time {
+            background: white;
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            padding: 12px 10px;
+            text-align: center;
+        }
+
+            .reservation-time .time {
+                font-size: 1.1rem;
+                font-weight: 900;
+                color: var(--primary);
+                margin-bottom: 6px;
+            }
+
+            .reservation-time .date {
+                color: var(--muted);
+                font-size: 0.83rem;
+            }
+
+        .reservation-main {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .reservation-title {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            gap: 8px;
+        }
+
+            .reservation-title strong {
+                font-size: 1rem;
+            }
+
+        .reservation-sub {
+            color: var(--muted);
+            font-size: 0.9rem;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+
+        .reservation-meta {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+
+        .chip {
+            background: #f8f4ee;
+            border: 1px solid var(--border);
+            color: #6b4f36;
+            padding: 5px 9px;
+            border-radius: 999px;
+            font-size: 0.76rem;
+            font-weight: 700;
+        }
+
+        .note-box {
+            background: white;
+            border: 1px dashed var(--border);
+            border-radius: 14px;
+            padding: 10px 12px;
+            font-size: 0.86rem;
+            color: #5f4b3a;
+            line-height: 1.7;
+        }
+
+        .reservation-actions {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            min-width: 128px;
+        }
+
+        .btn-sm {
+            border: 1px solid var(--border);
+            background: white;
+            color: var(--text);
+            padding: 9px 10px;
+            border-radius: 10px;
+            cursor: pointer;
+            font-weight: 800;
+            font-size: .85rem;
+        }
+
+            .btn-sm:hover {
+                background: #faf7f2;
+            }
+
+            .btn-sm.success {
+                background: #f3fff9;
+                color: var(--success);
+                border-color: #bfe8d8;
+            }
+
+            .btn-sm.danger {
+                background: #fff7f7;
+                color: var(--danger);
+                border-color: #f3c0c0;
+            }
+
+        .status-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 6px 10px;
+            border-radius: 999px;
+            font-size: 0.76rem;
+            font-weight: 800;
+        }
+
+        .status-Pending {
+            background: #fff3cd;
+            color: #8a6400;
+            border: 1px solid #f4db8c;
+        }
+
+        .status-Confirmed {
+            background: #e8fff6;
+            color: #0f7c59;
+            border: 1px solid #bfe8d8;
+        }
+
+        .status-Cancelled {
+            background: #fff3f3;
+            color: #b42318;
+            border: 1px solid #f1c3c3;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 54px 20px;
+            color: var(--muted);
+            background: linear-gradient(180deg, #fffdf9, #fff7ee);
+            border: 1px dashed var(--border);
+            border-radius: 18px;
+        }
+
+        @media (max-width: 1150px) {
+            .layout {
+                grid-template-columns: 1fr;
+            }
+
+            .panel {
+                position: static;
+            }
+
+            .stats-row {
+                grid-template-columns: repeat(2, minmax(140px, 1fr));
+            }
+        }
+
+        @media (max-width: 760px) {
+            body {
+                padding: 12px;
+            }
+
+            .form-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .reservation-card {
+                grid-template-columns: 1fr;
+            }
+
+            .reservation-actions {
+                min-width: 100%;
+                flex-direction: row;
+                flex-wrap: wrap;
+            }
+
+            .stats-row {
+                grid-template-columns: 1fr 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="page-shell">
+        <div class="header">
+            <div class="header-title">
+                <div class="header-icon"><i class="fa-solid fa-calendar-check"></i></div>
+                <div>
+                    <h2>إدارة الحجوزات</h2>
+                    <p>نظم المواعيد، نسق الطاولات، وتابع الحجوزات القادمة بسهولة</p>
+                </div>
+            </div>
+
+            <div class="header-actions">
+                <button class="header-btn" onclick="goToPage('manage_tables.html')">🪑 الطاولات</button>
+                <button class="header-btn" onclick="goToPage('Dashboard.html')">📊 الداشبورد</button>
+            </div>
+        </div>
+
+        <div id="pageMessage" class="page-message"></div>
+
+        <div class="layout">
+            <div class="panel">
+                <h3 id="formTitle">📝 تسجيل حجز جديد</h3>
+                <div class="panel-subtitle">
+                    أضف تفاصيل الحجز مع رقم الهاتف والطاولة والطلبات الخاصة، حتى يكون فريق الخدمة جاهز قبل وصول الزبون.
+                </div>
+
+                <input type="hidden" id="resId">
+
+                <div class="form-grid">
+                    <div class="form-group full">
+                        <label for="custName">اسم الزبون</label>
+                        <input type="text" id="custName" placeholder="الاسم الكامل">
+                    </div>
+
+                    <div class="form-group full">
+                        <label for="custPhone">رقم الهاتف</label>
+                        <input type="text" id="custPhone" placeholder="07XXXXXXXXX">
+                    </div>
+
+                    <div class="form-group full">
+                        <label for="resDate">موعد الحجز</label>
+                        <input type="text" id="resDate" placeholder="اختر التاريخ والوقت..">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="guestCount">عدد الأشخاص</label>
+                        <input type="number" id="guestCount" placeholder="4" min="1">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="tableSelect">الطاولة</label>
+                        <select id="tableSelect">
+                            <option value="">-- جاري تحميل الطاولات --</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group full">
+                        <label for="specialReq">طلبات خاصة للزبون</label>
+                        <textarea id="specialReq" rows="2" placeholder="ركن هادئ، مقعد أطفال، قرب النافذة..."></textarea>
+                    </div>
+
+                    <div class="form-group full">
+                        <label for="prepNotes">ملاحظات التحضير للموظفين</label>
+                        <textarea id="prepNotes" rows="2" placeholder="تجهيز كيكة، شموع، ترتيب خاص..."></textarea>
+                    </div>
+                </div>
+
+                <div class="panel-actions">
+                    <button class="btn btn-primary" onclick="saveReservation()">💾 تأكيد الحجز</button>
+                    <button class="btn btn-secondary" id="cancelBtn" style="display:none;" onclick="resetForm()">إلغاء</button>
+                </div>
+            </div>
+
+            <div class="content-card">
+                <div class="stats-row">
+                    <div class="mini-stat">
+                        <div class="label">إجمالي الحجوزات</div>
+                        <div class="value" id="statTotal">0</div>
+                    </div>
+                    <div class="mini-stat">
+                        <div class="label">حجوزات اليوم</div>
+                        <div class="value" id="statToday">0</div>
+                    </div>
+                    <div class="mini-stat">
+                        <div class="label">مؤكدة</div>
+                        <div class="value" id="statConfirmed">0</div>
+                    </div>
+                    <div class="mini-stat">
+                        <div class="label">معلقة</div>
+                        <div class="value" id="statPending">0</div>
+                    </div>
+                </div>
+
+                <div class="tools">
+                    <div class="tools-left">
+                        <button class="filter-btn active" id="filterTodayBtn" onclick="switchFilter('today')">حجوزات اليوم</button>
+                        <button class="filter-btn" id="filterAllBtn" onclick="switchFilter('all')">كل الحجوزات</button>
+                        <input class="search-input" type="text" id="searchInput" placeholder="بحث باسم الزبون أو الطاولة..." oninput="renderReservations()">
+                    </div>
+
+                    <div class="tools-right">
+                        <span style="color: var(--muted); font-size: 0.92rem;" id="reservationSummary">جاري تحميل البيانات...</span>
+                    </div>
+                </div>
+
+                <div id="reservationsList" class="reservations-list">
+                    <div class="empty-state">جاري تحميل بيانات الحجوزات...</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+    <script src="https://npmcdn.com/flatpickr/dist/l10n/ar.js"></script>
+
+    <script>
+        const API_URL = window.location.origin;
+        const token = localStorage.getItem("authToken");
+
+        let datePicker;
+        let allReservations = [];
+        let currentFilter = 'today';
+
+        if (!token) {
+            window.location.href = "login.html";
+        }
+
+        document.addEventListener('DOMContentLoaded', function () {
+            datePicker = flatpickr("#resDate", {
+                enableTime: true,
+                dateFormat: "Y-m-dTH:i:S",
+                altInput: true,
+                altFormat: "Y-m-d h:i K",
+                minDate: "today",
+                locale: "ar",
+                time_24hr: false,
+                disableMobile: true
+            });
+        });
+
+        function showMessage(message, type = 'success') {
+            const el = document.getElementById("pageMessage");
+            el.className = `page-message ${type}`;
+            el.textContent = message;
+
+            setTimeout(() => {
+                el.className = 'page-message';
+                el.textContent = '';
+            }, 3500);
+        }
+
+        async function loadTables() {
+            try {
+                const resp = await fetch(`${API_URL}/api/v1/Tables`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+
+                const res = await resp.json();
+
+                if (!resp.ok || !res.success) {
+                    throw new Error(res.message || "فشل تحميل الطاولات");
+                }
+
+                const select = document.getElementById("tableSelect");
+                const availableTables = (res.data || []).filter(t => t.isActive !== false);
+
+                select.innerHTML = '<option value="">-- اختر الطاولة --</option>' +
+                    availableTables.map(t =>
+                        `<option value="${t.id}">${escapeHtml(t.tableNumber)} • سعة ${t.capacity}</option>`
+                    ).join('');
+            } catch (err) {
+                console.error(err);
+                showMessage(err.message || "تعذر تحميل الطاولات", "error");
+            }
+        }
+
+        async function loadReservations(type = 'today') {
+            currentFilter = type;
+
+            const endpoint = type === 'today'
+                ? '/api/v1/Reservations/today'
+                : '/api/v1/Reservations';
+
+            try {
+                const resp = await fetch(`${API_URL}${endpoint}`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+
+                const res = await resp.json();
+
+                if (!resp.ok || !res.success) {
+                    throw new Error(res.message || "فشل تحميل الحجوزات");
+                }
+
+                allReservations = Array.isArray(res.data) ? res.data : [];
+                renderStats();
+                renderReservations();
+                updateFilterButtons();
+            } catch (err) {
+                console.error(err);
+                document.getElementById("reservationsList").innerHTML =
+                    `<div class="empty-state">تعذر تحميل الحجوزات</div>`;
+                showMessage(err.message || "تعذر تحميل الحجوزات", "error");
+            }
+        }
+
+        function switchFilter(type) {
+            loadReservations(type);
+        }
+
+        function updateFilterButtons() {
+            document.getElementById("filterTodayBtn").classList.toggle("active", currentFilter === 'today');
+            document.getElementById("filterAllBtn").classList.toggle("active", currentFilter === 'all');
+        }
+
+        function renderStats() {
+            const total = allReservations.length;
+            const confirmed = allReservations.filter(r => r.status === "Confirmed").length;
+            const pending = allReservations.filter(r => r.status === "Pending").length;
+
+            const todayCount = allReservations.filter(r => {
+                const d = new Date(r.reservationDate);
+                const now = new Date();
+                return d.getFullYear() === now.getFullYear()
+                    && d.getMonth() === now.getMonth()
+                    && d.getDate() === now.getDate();
+            }).length;
+
+            document.getElementById("statTotal").innerText = total;
+            document.getElementById("statToday").innerText = todayCount;
+            document.getElementById("statConfirmed").innerText = confirmed;
+            document.getElementById("statPending").innerText = pending;
+        }
+
+        function renderReservations() {
+            const list = document.getElementById("reservationsList");
+            const searchValue = document.getElementById("searchInput").value.trim().toLowerCase();
+
+            let filtered = [...allReservations];
+
+            if (searchValue) {
+                filtered = filtered.filter(r =>
+                    String(r.customerName || '').toLowerCase().includes(searchValue) ||
+                    String(r.customerPhone || '').toLowerCase().includes(searchValue) ||
+                    String(r.tableNumber || '').toLowerCase().includes(searchValue)
+                );
+            }
+
+            document.getElementById("reservationSummary").innerText =
+                `إجمالي المعروض: ${filtered.length} / ${allReservations.length}`;
+
+            if (!filtered.length) {
+                list.innerHTML = `<div class="empty-state">لا توجد حجوزات مطابقة</div>`;
+                return;
+            }
+
+            filtered.sort((a, b) => new Date(a.reservationDate) - new Date(b.reservationDate));
+
+            list.innerHTML = filtered.map(buildReservationCard).join('');
+        }
+
+        function buildReservationCard(r) {
+            const date = new Date(r.reservationDate);
+            const timeText = date.toLocaleTimeString('ar-IQ', { hour: '2-digit', minute: '2-digit' });
+            const dateText = date.toLocaleDateString('ar-IQ');
+
+            return `
+                    <div class="reservation-card">
+                        <div class="reservation-time">
+                            <div class="time">${timeText}</div>
+                            <div class="date">${dateText}</div>
+                        </div>
+
+                        <div class="reservation-main">
+                            <div class="reservation-title">
+                                <strong>${escapeHtml(r.customerName || 'بدون اسم')}</strong>
+                                <span class="status-badge status-${r.status}">${translateStatus(r.status)}</span>
+                            </div>
+
+                            <div class="reservation-sub">
+                                <span>📞 ${escapeHtml(r.customerPhone || 'بدون رقم')}</span>
+                                <span>🪑 الطاولة ${escapeHtml(r.tableNumber || '—')}</span>
+                            </div>
+
+                            <div class="reservation-meta">
+                                <span class="chip">👥 ${r.guestCount || 0} أشخاص</span>
+                                ${r.specialRequests ? `<span class="chip">⭐ طلب خاص</span>` : ''}
+                                ${r.preparationNotes ? `<span class="chip">🧁 تحضير خاص</span>` : ''}
+                            </div>
+
+                            ${r.specialRequests ? `
+                                <div class="note-box">
+                                    <strong>طلبات الزبون:</strong><br>
+                                    ${escapeHtml(r.specialRequests)}
+                                </div>
+                            ` : ''}
+
+                            ${r.preparationNotes ? `
+                                <div class="note-box">
+                                    <strong>ملاحظات التحضير:</strong><br>
+                                    ${escapeHtml(r.preparationNotes)}
+                                </div>
+                            ` : ''}
+                        </div>
+
+                        <div class="reservation-actions">
+                            <button class="btn-sm success" onclick="updateStatus('${r.id}', 'Confirmed')">✅ تأكيد</button>
+                            <button class="btn-sm danger" onclick="deleteReservation('${r.id}')">🗑️ إلغاء</button>
+                        </div>
+                    </div>
+                `;
+        }
+
+        async function saveReservation() {
+            const guestCountInput = document.getElementById("guestCount").value;
+            const tableId = document.getElementById("tableSelect").value;
+            const resDate = document.getElementById("resDate").value;
+
+            if (!resDate || !tableId || !guestCountInput) {
+                showMessage("يرجى اختيار الموعد والطاولة وعدد الأشخاص أولاً", "error");
+                return;
+            }
+
+            const data = {
+                customerName: document.getElementById("custName").value.trim(),
+                customerPhone: document.getElementById("custPhone").value.trim(),
+                reservationDate: resDate,
+                guestCount: parseInt(guestCountInput),
+                tableId: tableId,
+                specialRequests: document.getElementById("specialReq").value.trim(),
+                preparationNotes: document.getElementById("prepNotes").value.trim()
+            };
+
+            try {
+                const resp = await fetch(`${API_URL}/api/v1/Reservations`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                    },
+                    body: JSON.stringify(data)
+                });
+
+                const result = await resp.json();
+
+                if (!resp.ok || !result.success) {
+                    throw new Error(result.message || "فشل تسجيل الحجز");
+                }
+
+                showMessage("تم تسجيل الحجز بنجاح");
+                resetForm();
+                await loadReservations(currentFilter);
+            } catch (err) {
+                console.error(err);
+                showMessage(err.message || "خطأ في الاتصال بالسيرفر", "error");
+            }
+        }
+
+        async function updateStatus(id, status) {
+            try {
+                const resp = await fetch(`${API_URL}/api/v1/Reservations/${id}/status?status=${status}`, {
+                    method: 'PATCH',
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+
+                if (!resp.ok) {
+                    throw new Error("فشل تحديث حالة الحجز");
+                }
+
+                showMessage("تم تحديث حالة الحجز");
+                await loadReservations(currentFilter);
+            } catch (err) {
+                console.error(err);
+                showMessage(err.message || "تعذر تحديث حالة الحجز", "error");
+            }
+        }
+
+        async function deleteReservation(id) {
+            if (!confirm("هل تريد إلغاء هذا الحجز؟")) return;
+
+            try {
+                const resp = await fetch(`${API_URL}/api/v1/Reservations/${id}`, {
+                    method: 'DELETE',
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+
+                if (!resp.ok) {
+                    throw new Error("فشل حذف الحجز");
+                }
+
+                showMessage("تم إلغاء الحجز بنجاح");
+                await loadReservations(currentFilter);
+            } catch (err) {
+                console.error(err);
+                showMessage(err.message || "تعذر حذف الحجز", "error");
+            }
+        }
+
+        function resetForm() {
+            document.getElementById("resId").value = "";
+            document.getElementById("custName").value = "";
+            document.getElementById("custPhone").value = "";
+            document.getElementById("guestCount").value = "";
+            document.getElementById("tableSelect").value = "";
+            document.getElementById("specialReq").value = "";
+            document.getElementById("prepNotes").value = "";
+            document.getElementById("formTitle").innerText = "📝 تسجيل حجز جديد";
+            document.getElementById("cancelBtn").style.display = "none";
+
+            if (datePicker) datePicker.clear();
+        }
+
+        function translateStatus(status) {
+            const map = {
+                "Pending": "معلق",
+                "Confirmed": "مؤكد",
+                "Cancelled": "ملغي"
+            };
+            return map[status] || status || "غير معروف";
+        }
+
+        function goToPage(page) {
+            if (window.parent && window.parent !== window) {
+                const frame = window.parent.document.getElementById('mainFrame');
+                if (frame) {
+                    frame.src = page;
+                    return;
+                }
+            }
+            window.location.href = page;
+        }
+
+        function escapeHtml(value) {
+            return String(value ?? '')
+                .replaceAll('&', '&amp;')
+                .replaceAll('<', '&lt;')
+                .replaceAll('>', '&gt;')
+                .replaceAll('"', '&quot;')
+                .replaceAll("'", '&#39;');
+        }
+
+        loadTables();
+        loadReservations();
+    </script>
+</body>
+</html>

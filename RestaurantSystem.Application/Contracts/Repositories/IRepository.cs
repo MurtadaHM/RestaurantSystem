@@ -8,7 +8,7 @@ namespace RestaurantSystem.Application.Contracts.Repositories
     // أضفنا where T : class لضمان أن هذا الانترفيس يتعامل مع كلاسات (جداول) فقط
     public interface IRepository<T> where T : class
     {
-        Task<T> GetByIdAsync(Guid id);
+        Task<T?> GetByIdAsync(Guid id);
 
         Task<IEnumerable<T>> GetAllAsync();
 

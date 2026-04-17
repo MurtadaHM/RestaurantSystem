@@ -1,0 +1,571 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>رادار النادل | الطلبات الجاهزة</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        :root {
+            --bg: #eef6ff;
+            --card: #ffffff;
+            --text: #223042;
+            --muted: #6b7a8c;
+            --primary: #2b6cb0;
+            --primary-2: #3b82c4;
+            --success: #48bb78;
+            --danger: #e53e3e;
+            --warning: #f59e0b;
+            --border: #dbe7f4;
+            --shadow: 0 16px 34px rgba(43, 108, 176, 0.10);
+            --radius-xl: 24px;
+            --radius-lg: 18px;
+            --radius-md: 14px;
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            padding: 20px;
+            font-family: "Segoe UI", Tahoma, sans-serif;
+            background: radial-gradient(circle at top right, rgba(43,108,176,0.10) 0%, transparent 20%), linear-gradient(180deg, #f5faff, #eef6ff);
+            color: var(--text);
+            min-height: 100vh;
+        }
+
+        .page-shell {
+            max-width: 1300px;
+            margin: 0 auto;
+        }
+
+        .header {
+            background: linear-gradient(135deg, var(--primary), var(--primary-2));
+            color: white;
+            padding: 18px 22px;
+            border-radius: var(--radius-xl);
+            margin-bottom: 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 14px;
+            flex-wrap: wrap;
+            box-shadow: var(--shadow);
+        }
+
+        .header-left {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+        }
+
+        .header-icon {
+            width: 56px;
+            height: 56px;
+            border-radius: 18px;
+            display: grid;
+            place-items: center;
+            background: rgba(255,255,255,0.14);
+            font-size: 1.35rem;
+        }
+
+        .header h2 {
+            margin: 0 0 5px 0;
+        }
+
+        .header p {
+            margin: 0;
+            color: #eaf3ff;
+            font-size: 0.92rem;
+        }
+
+        .header-right {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+
+        .status-badge {
+            font-size: 0.85rem;
+            background: rgba(255,255,255,0.16);
+            padding: 8px 12px;
+            border-radius: 999px;
+            font-weight: 800;
+        }
+
+        .header-btn {
+            background: rgba(255,255,255,0.10);
+            border: 1px solid rgba(255,255,255,0.22);
+            color: white;
+            padding: 10px 14px;
+            border-radius: 12px;
+            cursor: pointer;
+            font-weight: 800;
+        }
+
+            .header-btn:hover {
+                background: rgba(255,255,255,0.18);
+            }
+
+        .stats-row {
+            display: grid;
+            grid-template-columns: repeat(3, minmax(180px, 1fr));
+            gap: 14px;
+            margin-bottom: 20px;
+        }
+
+        .stat-card {
+            background: white;
+            border: 1px solid var(--border);
+            border-radius: 18px;
+            padding: 16px;
+            box-shadow: var(--shadow);
+        }
+
+            .stat-card .label {
+                color: var(--muted);
+                font-size: 0.86rem;
+                margin-bottom: 8px;
+            }
+
+            .stat-card .value {
+                font-size: 1.6rem;
+                font-weight: 900;
+                color: var(--primary);
+            }
+
+        .toolbar {
+            display: flex;
+            justify-content: space-between;
+            gap: 12px;
+            align-items: center;
+            flex-wrap: wrap;
+            margin-bottom: 18px;
+        }
+
+            .toolbar input {
+                min-width: 260px;
+                padding: 12px 14px;
+                border: 1px solid var(--border);
+                border-radius: 999px;
+                background: white;
+                font: inherit;
+                outline: none;
+            }
+
+                .toolbar input:focus {
+                    border-color: var(--primary);
+                    box-shadow: 0 0 0 4px rgba(43,108,176,0.12);
+                }
+
+        .toolbar-info {
+            color: var(--muted);
+            font-size: 0.92rem;
+            font-weight: 700;
+        }
+
+        .notification-area {
+            max-width: 980px;
+            margin: 0 auto;
+            display: grid;
+            gap: 14px;
+        }
+
+        .ready-card {
+            background: white;
+            border-radius: 20px;
+            padding: 18px;
+            border-right: 10px solid var(--success);
+            box-shadow: 0 16px 28px rgba(0,0,0,0.05);
+            animation: slideIn 0.35s ease;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 16px;
+            transition: .22s ease;
+        }
+
+            .ready-card:hover {
+                transform: translateY(-2px);
+            }
+
+        @keyframes slideIn {
+            from {
+                transform: translateX(40px);
+                opacity: 0;
+            }
+
+            to {
+                transform: translateX(0);
+                opacity: 1;
+            }
+        }
+
+        .order-info h3 {
+            margin: 0 0 7px 0;
+            color: var(--primary);
+            font-size: 1.22rem;
+        }
+
+        .order-info p {
+            margin: 0 0 6px 0;
+            font-size: 0.96rem;
+            color: #46576b;
+            font-weight: 600;
+        }
+
+        .meta-row {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-top: 8px;
+        }
+
+        .chip {
+            background: #f4f9ff;
+            border: 1px solid #d7e6f7;
+            color: #46617c;
+            padding: 5px 9px;
+            border-radius: 999px;
+            font-size: 0.76rem;
+            font-weight: 800;
+        }
+
+        .btn-group {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        .btn-delivered,
+        .btn-hide {
+            border: none;
+            padding: 12px 18px;
+            border-radius: 12px;
+            cursor: pointer;
+            font-weight: 900;
+            font-size: 0.94rem;
+            transition: .2s ease;
+        }
+
+        .btn-delivered {
+            background: linear-gradient(135deg, var(--success), #35a86a);
+            color: white;
+            box-shadow: 0 8px 18px rgba(72, 187, 120, 0.18);
+        }
+
+            .btn-delivered:hover {
+                transform: translateY(-1px);
+            }
+
+        .btn-hide {
+            background: #fff5f5;
+            color: var(--danger);
+            border: 1px solid #f1c4c4;
+        }
+
+            .btn-hide:hover {
+                background: #ffecec;
+            }
+
+        .btn-delivered:disabled {
+            background: #cbd5e0;
+            cursor: not-allowed;
+            box-shadow: none;
+        }
+
+        #emptyMsg {
+            text-align: center;
+            color: #8aa0b7;
+            margin-top: 60px;
+            font-size: 1.08rem;
+            background: white;
+            padding: 50px 20px;
+            border-radius: 22px;
+            border: 1px dashed var(--border);
+            box-shadow: var(--shadow);
+        }
+
+        @media (max-width: 900px) {
+            .stats-row {
+                grid-template-columns: 1fr;
+            }
+
+            .ready-card {
+                flex-direction: column;
+                align-items: stretch;
+            }
+
+            .btn-group {
+                width: 100%;
+            }
+
+            .btn-delivered,
+            .btn-hide {
+                width: 100%;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="page-shell">
+        <div class="header">
+            <div class="header-left">
+                <div class="header-icon">💁‍♂️</div>
+                <div>
+                    <h2>رادار النادل</h2>
+                    <p>تابع الأطباق الجاهزة وسلّمها بسرعة ودقة للزبائن</p>
+                </div>
+            </div>
+
+            <div class="header-right">
+                <span id="statusText" class="status-badge">جاري الاتصال بالسيرفر...</span>
+                <button class="header-btn" onclick="reloadDashboard()">🔄 تحديث</button>
+                <button class="header-btn" onclick="goToPage('Dashboard.html')">📊 الداشبورد</button>
+            </div>
+        </div>
+
+        <div class="stats-row">
+            <div class="stat-card">
+                <div class="label">طلبات جاهزة حالياً</div>
+                <div class="value" id="statReady">0</div>
+            </div>
+            <div class="stat-card">
+                <div class="label">طلبات الصالة</div>
+                <div class="value" id="statDineIn">0</div>
+            </div>
+            <div class="stat-card">
+                <div class="label">طلبات التوصيل / الأخرى</div>
+                <div class="value" id="statOther">0</div>
+            </div>
+        </div>
+
+        <div class="toolbar">
+            <input type="text" id="searchInput" placeholder="بحث برقم الطلب أو رقم الطاولة..." oninput="renderCards()">
+            <div class="toolbar-info" id="summaryText">جاري تحميل الطلبات الجاهزة...</div>
+        </div>
+
+        <div class="notification-area" id="waiterNotifications">
+            <div id="emptyMsg">📭 لا توجد أطباق جاهزة حالياً.. بانتظار المطبخ</div>
+        </div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/microsoft-signalr/6.0.1/signalr.min.js"></script>
+    <script>
+        const API_URL = window.location.origin;
+        const token = localStorage.getItem("authToken");
+
+        let readyOrders = [];
+
+        if (!token) {
+            window.location.href = "login.html";
+        }
+
+        const connection = new signalR.HubConnectionBuilder()
+            .withUrl(`${API_URL}/orderHub`, { accessTokenFactory: () => token })
+            .withAutomaticReconnect()
+            .build();
+
+        function renderCards() {
+            const container = document.getElementById("waiterNotifications");
+            const search = document.getElementById("searchInput").value.trim().toLowerCase();
+
+            let filtered = [...readyOrders];
+
+            if (search) {
+                filtered = filtered.filter(order => {
+                    const orderNumber = String(order.orderNumber || '').toLowerCase();
+                    const tableNumber = String(order.tableNumber || '').toLowerCase();
+                    return orderNumber.includes(search) || tableNumber.includes(search);
+                });
+            }
+
+            document.getElementById("summaryText").innerText =
+                `إجمالي المعروض: ${filtered.length} / ${readyOrders.length}`;
+
+            if (!filtered.length) {
+                container.innerHTML = `<div id="emptyMsg">📭 لا توجد أطباق جاهزة حالياً.. بانتظار المطبخ</div>`;
+                updateStats();
+                return;
+            }
+
+            container.innerHTML = filtered.map(buildReadyCard).join('');
+            updateStats(filtered);
+        }
+
+        function buildReadyCard(order) {
+            const id = order.id || order.orderId;
+            const table = order.tableNumber || order.tableName || "غير معروفة";
+            const orderNumber = order.orderNumber || '---';
+            const orderType = order.orderType || 'DineIn';
+
+            return `
+                    <div class="ready-card" id="ready-${id}">
+                        <div class="order-info">
+                            <h3>🍽️ الطلب #${orderNumber}</h3>
+                            <p>طاولة: ${escapeHtml(table)}</p>
+
+                            <div class="meta-row">
+                                <span class="chip">${translateType(orderType)}</span>
+                                <span class="chip">معرف: ${id.substring(0, 8)}</span>
+                            </div>
+                        </div>
+
+                        <div class="btn-group">
+                            <button class="btn-delivered" id="btn-${id}" onclick="markAsDelivered('${id}')">
+                                تم التسليم للزبون ✅
+                            </button>
+                            <button class="btn-hide" onclick="hideCard('${id}')">
+                                إخفاء مؤقت
+                            </button>
+                        </div>
+                    </div>
+                `;
+        }
+
+        async function loadInitialReadyOrders() {
+            try {
+                const response = await fetch(`${API_URL}/api/v1/Orders`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+
+                const result = await response.json();
+
+                if (response.ok && result.success) {
+                    readyOrders = result.data.filter(o => o.status === "Ready");
+                    renderCards();
+                }
+            } catch (err) {
+                console.error("Error loading ready orders", err);
+            }
+        }
+
+        async function markAsDelivered(orderId) {
+            const btn = document.getElementById(`btn-${orderId}`);
+            if (!btn) return;
+
+            btn.disabled = true;
+            btn.innerText = "جاري الحفظ...";
+
+            try {
+                const response = await fetch(`${API_URL}/api/v1/Orders/${orderId}/status`, {
+                    method: 'PATCH',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                    },
+                    body: JSON.stringify({
+                        orderId: orderId,
+                        newStatus: "Completed",
+                        notes: "تم التسليم النهائي بواسطة النادل"
+                    })
+                });
+
+                const result = await response.json();
+
+                if (response.ok && result.success) {
+                    readyOrders = readyOrders.filter(o => (o.id || o.orderId) !== orderId);
+                    renderCards();
+                } else {
+                    throw new Error(result.message || "فشل تحديث الطلب");
+                }
+            } catch (err) {
+                console.error(err);
+                btn.disabled = false;
+                btn.innerText = "تم التسليم للزبون ✅";
+                alert("فشل الاتصال بالسيرفر");
+            }
+        }
+
+        function hideCard(orderId) {
+            readyOrders = readyOrders.filter(o => (o.id || o.orderId) !== orderId);
+            renderCards();
+        }
+
+        function updateStats(source = readyOrders) {
+            const total = source.length;
+            const dineIn = source.filter(o => o.orderType === "DineIn").length;
+            const other = total - dineIn;
+
+            document.getElementById("statReady").innerText = total;
+            document.getElementById("statDineIn").innerText = dineIn;
+            document.getElementById("statOther").innerText = other;
+        }
+
+        function playNotificationSound() {
+            const audio = new Audio('https://assets.mixkit.co/sfx/preview/mixkit-bell-notification-933.mp3');
+            audio.play().catch(() => { });
+        }
+
+        function translateType(type) {
+            const map = {
+                "DineIn": "🍽️ داخل الصالة",
+                "Delivery": "🛵 توصيل",
+                "TakeAway": "🥡 استلام مباشر"
+            };
+            return map[type] || type || "طلب";
+        }
+
+        function escapeHtml(value) {
+            return String(value ?? '')
+                .replaceAll('&', '&amp;')
+                .replaceAll('<', '&lt;')
+                .replaceAll('>', '&gt;')
+                .replaceAll('"', '&quot;')
+                .replaceAll("'", '&#39;');
+        }
+
+        function reloadDashboard() {
+            loadInitialReadyOrders();
+        }
+
+        function goToPage(page) {
+            if (window.parent && window.parent !== window) {
+                const frame = window.parent.document.getElementById('mainFrame');
+                if (frame) {
+                    frame.src = page;
+                    return;
+                }
+            }
+            window.location.href = page;
+        }
+
+        connection.on("OrderStatusChanged", (data) => {
+            const orderId = data.orderId || data.OrderId;
+            const status = data.newStatus || data.NewStatus;
+
+            if (status === "Ready") {
+                fetch(`${API_URL}/api/v1/Orders/${orderId}`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                })
+                    .then(r => r.json())
+                    .then(result => {
+                        if (result.success && result.data) {
+                            const exists = readyOrders.some(o => (o.id || o.orderId) === orderId);
+                            if (!exists) {
+                                readyOrders.unshift(result.data);
+                                renderCards();
+                                playNotificationSound();
+                            }
+                        }
+                    })
+                    .catch(console.error);
+            } else if (status === "Completed" || status === "Cancelled") {
+                readyOrders = readyOrders.filter(o => (o.id || o.orderId) !== orderId);
+                renderCards();
+            }
+        });
+
+        connection.start().then(() => {
+            document.getElementById("statusText").innerText = "🟢 الرادار فعال";
+            loadInitialReadyOrders();
+        }).catch(() => {
+            document.getElementById("statusText").innerText = "🔴 خطأ في الاتصال";
+            loadInitialReadyOrders();
+        });
+    </script>
+</body>
+</html>

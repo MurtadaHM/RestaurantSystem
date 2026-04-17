@@ -6,37 +6,77 @@ namespace RestaurantSystem.Domain.Entities
 {
     public class Order : BaseEntity
     {
-        /// <summary>معرّف المستخدم</summary>
-        public Guid UserId { get; set; }                    // ✅ Required
+        public Guid UserId { get; set; }
+        public Guid? TableId { get; set; }
 
-        /// <summary>معرّف الطاولة (اختياري)</summary>
-        public Guid? TableId { get; set; }                  // ✅ nullable
-
-        /// <summary>حالة الطلب</summary>
         public OrderStatus Status { get; set; } = OrderStatus.Pending;
+        public int OrderNumber { get; set; }
+        public OrderType OrderType { get; set; }
 
-        /// <summary>نوع الطلب</summary>
-        public OrderType OrderType { get; set; }            // ✅ Required
-
-        /// <summary>إجمالي السعر</summary>
         public decimal TotalAmount { get; set; }
+        public decimal? DeliveryFee { get; set; }
 
-        /// <summary>رسوم التوصيل</summary>
-        public decimal? DeliveryFee { get; set; }           // ✅ nullable
+        public string? SpecialNotes { get; set; }
+        public DateTime? ExpectedReadyTime { get; set; }
+        public DateTime? CompletedAt { get; set; }
 
-        /// <summary>ملاحظات خاصة</summary>
-        public string? SpecialNotes { get; set; }           // ✅ FIX: nullable
+        // ──────────────────────────────────────────────────────────
+        // Sendy Integration
+        // ──────────────────────────────────────────────────────────
 
-        /// <summary>وقت الطلب المتوقع</summary>
-        public DateTime? ExpectedReadyTime { get; set; }    // ✅ nullable
+        /// <summary>المعرف الخارجي الداخلي للطلب في Sendy</summary>
+        public Guid? ExternalOrderId { get; set; }
 
-        /// <summary>وقت انتهاء الطلب الفعلي</summary>
-        public DateTime? CompletedAt { get; set; }          // ✅ nullable
+        /// <summary>المعرف العام الخارجي للطلب في Sendy مثل ORD-20260410-XXXXX</summary>
+        public string? ExternalPublicId { get; set; }
 
+        /// <summary>الحالة الفنية للتوصيل عند الشريك الخارجي</summary>
+        public DeliveryPartnerStatus ExternalDeliveryStatus { get; set; } = DeliveryPartnerStatus.Idle;
+
+        /// <summary>هل تم إرسال الطلب بنجاح إلى Sendy</summary>
+        public bool IsSyncedToExternalProvider { get; set; } = false;
+
+        /// <summary>آخر وقت مزامنة مع النظام الخارجي</summary>
+        public DateTime? LastExternalSyncDate { get; set; }
+
+        /// <summary>رابط تتبع الطلب الخارجي</summary>
+        public string? TrackingUrl { get; set; }
+
+        /// <summary>عنوان التوصيل النصي</summary>
+        public string? DeliveryAddress { get; set; }
+
+        public double? Latitude { get; set; }
+        public double? Longitude { get; set; }
+
+        /// <summary>رقم هاتف الزبون</summary>
+        public string? CustomerPhoneNumber { get; set; }
+
+        /// <summary>اسم السائق القادم من Sendy</summary>
+        public string? CourierName { get; set; }
+
+        /// <summary>رقم هاتف السائق القادم من Sendy</summary>
+        public string? CourierPhoneNumber { get; set; }
+
+        // ──────────────────────────────────────────────────────────
         // Navigation Properties
+        // ──────────────────────────────────────────────────────────
+
         public User? User { get; set; }
         public Table? Table { get; set; }
         public ICollection<OrderItem> OrderItems { get; set; } = new List<OrderItem>();
         public Payment? Payment { get; set; }
+
+
+
+
+        // ──────────────────────────────────────────────────────────
+        // Team 6
+        // ──────────────────────────────────────────────────────────
+
+        public string? PartnerUserId { get; set; }
+        public string? PartnerOrderId { get; set; }
+        public string? PartnerSource { get; set; }
+        public string? PartnerRestaurantId { get; set; }
+        public DateTime? LastPartnerSyncDate { get; set; }
     }
 }

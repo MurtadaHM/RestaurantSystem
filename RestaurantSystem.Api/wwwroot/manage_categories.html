@@ -1,0 +1,307 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <title>إدارة الفئات والأقسام - نظام المطعم</title>
+    <style>
+        :root {
+            --primary: #2d3436;
+            --accent: #0984e3;
+            --success: #00b894;
+            --bg: #f4f7f6;
+            --danger: #d63031;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: var(--bg);
+            padding: 20px;
+            margin: 0;
+        }
+
+        .header {
+            background: var(--primary);
+            color: white;
+            padding: 15px 25px;
+            border-radius: 12px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 25px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+
+        .container {
+            display: grid;
+            grid-template-columns: 350px 1fr;
+            gap: 25px;
+        }
+
+        .card {
+            background: white;
+            padding: 20px;
+            border-radius: 15px;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.05);
+            height: fit-content;
+            position: sticky;
+            top: 20px;
+        }
+
+        label {
+            display: block;
+            margin-top: 10px;
+            font-weight: bold;
+            color: #555;
+            font-size: 0.9em;
+        }
+
+        input, select, textarea {
+            width: 100%;
+            padding: 12px;
+            margin: 5px 0 15px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            box-sizing: border-box;
+            font-size: 1em;
+        }
+
+        .btn-action {
+            width: 100%;
+            padding: 12px;
+            background: var(--accent);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: 0.3s;
+        }
+
+            .btn-action:hover {
+                opacity: 0.9;
+                transform: translateY(-1px);
+            }
+
+        .btn-cancel {
+            background: #636e72;
+            margin-top: 8px;
+        }
+
+        .table-container {
+            background: white;
+            border-radius: 15px;
+            padding: 15px;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.05);
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        th, td {
+            padding: 15px;
+            text-align: right;
+            border-bottom: 1px solid #eee;
+        }
+
+        th {
+            background: #f8f9fa;
+            color: var(--primary);
+            font-weight: bold;
+        }
+
+        .badge-dept {
+            background: #e3f2fd;
+            color: #1976d2;
+            padding: 5px 12px;
+            border-radius: 20px;
+            font-size: 0.8em;
+            font-weight: bold;
+            border: 1px solid #bbdefb;
+        }
+
+        .actions-cell {
+            display: flex;
+            gap: 10px;
+        }
+
+        .btn-edit {
+            color: var(--accent);
+            cursor: pointer;
+            border: 1px solid var(--accent);
+            padding: 5px 12px;
+            border-radius: 6px;
+            background: none;
+        }
+
+        .btn-del {
+            color: var(--danger);
+            cursor: pointer;
+            border: 1px solid var(--danger);
+            padding: 5px 12px;
+            border-radius: 6px;
+            background: none;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="header">
+        <div>
+            <h2>📂 إدارة فئات المنيو (Categories)</h2>
+            <small>ربط الفئات بالأقسام لضمان توجيه الطلبات بشكل صحيح</small>
+        </div>
+        <button onclick="location.href='manage_menu.html'" style="background:rgba(255,255,255,0.1); border:1px solid white; color:white; padding:8px 15px; border-radius:8px; cursor:pointer;">🍔 الانتقال للمنيو</button>
+    </div>
+
+    <div class="container">
+        <div class="card">
+            <h3 id="formTitle">✨ إضافة فئة جديدة</h3>
+            <input type="hidden" id="categoryId">
+
+            <label>القسم المسؤول عن التحضير:</label>
+            <select id="deptSelect"><option value="">-- جاري التحميل --</option></select>
+
+            <label>اسم الفئة (مثلاً: مشاوي، كافيه):</label>
+            <input type="text" id="catName" placeholder="أدخل اسم الفئة">
+
+            <label>وصف الفئة (اختياري):</label>
+            <textarea id="catDesc" rows="3" placeholder="وصف بسيط..."></textarea>
+
+            <label>ترتيب العرض:</label>
+            <input type="number" id="displayOrder" value="1">
+
+            <button class="btn-action" id="saveBtn" onclick="saveCategory()">حفظ الفئة</button>
+            <button class="btn-action btn-cancel" id="cancelBtn" style="display:none;" onclick="resetForm()">إلغاء التعديل</button>
+        </div>
+
+        <div class="table-container">
+            <table>
+                <thead>
+                    <tr>
+                        <th>القسم التشغيلي</th>
+                        <th>اسم الفئة</th>
+                        <th>الوصف</th>
+                        <th>الترتيب</th>
+                        <th>إجراءات</th>
+                    </tr>
+                </thead>
+                <tbody id="categoriesTableBody"></tbody>
+            </table>
+        </div>
+    </div>
+
+    <script>
+        const API_URL = window.location.origin;
+        const token = localStorage.getItem("authToken");
+
+        if (!token) window.location.href = "login.html";
+
+        async function loadDepartments() {
+            try {
+                const resp = await fetch(`${API_URL}/api/v1/Departments`, { headers: { 'Authorization': `Bearer ${token}` } });
+                const res = await resp.json();
+                if (res.success) {
+                    const select = document.getElementById("deptSelect");
+                    select.innerHTML = '<option value="">-- اختر القسم --</option>' +
+                        res.data.map(d => `<option value="${d.id}">${d.name}</option>`).join('');
+                }
+            } catch (err) { console.error("Error loading depts:", err); }
+        }
+
+        async function loadCategories() {
+            try {
+                const resp = await fetch(`${API_URL}/api/v1/Categories`, { headers: { 'Authorization': `Bearer ${token}` } });
+                const res = await resp.json();
+                const tbody = document.getElementById("categoriesTableBody");
+
+                if (res.success) {
+                    tbody.innerHTML = "";
+                    // 💡 هنا التدقيق: نطبع البيانات في الكونسول لنتأكد من وجود departmentName
+                    console.log("البيانات القادمة من السيرفر:", res.data);
+
+                    res.data.forEach(c => {
+                        tbody.insertAdjacentHTML('beforeend', `
+                                <tr>
+                                    <td><span class="badge-dept">${c.departmentName || '⚠️ غير مرتبط بالباك-إند'}</span></td>
+                                    <td><strong>${c.name}</strong></td>
+                                    <td style="color:#666; font-size:0.9em;">${c.description || '-'}</td>
+                                    <td>${c.displayOrder}</td>
+                                    <td class="actions-cell">
+                                        <button class="btn-edit" onclick="editCategory('${c.id}', '${c.name}', \`${c.description || ''}\`, '${c.departmentId}', ${c.displayOrder})">تعديل 📝</button>
+                                        <button class="btn-del" onclick="deleteCategory('${c.id}')">حذف 🗑️</button>
+                                    </td>
+                                </tr>
+                            `);
+                    });
+                }
+            } catch (err) { console.error("Error loading categories:", err); }
+        }
+
+        async function saveCategory() {
+            const id = document.getElementById("categoryId").value;
+            const data = {
+                name: document.getElementById("catName").value.trim(),
+                description: document.getElementById("catDesc").value.trim() || null,
+                departmentId: document.getElementById("deptSelect").value,
+                displayOrder: parseInt(document.getElementById("displayOrder").value) || 1,
+                imageUrl: null
+            };
+
+            if (!data.name || !data.departmentId) return alert("الاسم والقسم مطلوبان!");
+
+            const method = id ? 'PUT' : 'POST';
+            const url = id ? `${API_URL}/api/v1/Categories/${id}` : `${API_URL}/api/v1/Categories`;
+            if (id) data.id = id;
+
+            try {
+                const resp = await fetch(url, {
+                    method: method,
+                    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+                    body: JSON.stringify(data)
+                });
+                const result = await resp.json();
+                if (resp.ok && result.success) {
+                    alert("✅ تم الحفظ بنجاح");
+                    resetForm();
+                    loadCategories();
+                } else {
+                    alert("❌ فشل: " + (result.message || "خطأ في البيانات"));
+                }
+            } catch (err) { alert("🔌 خطأ اتصال"); }
+        }
+
+        function editCategory(id, name, desc, deptId, order) {
+            document.getElementById("categoryId").value = id;
+            document.getElementById("catName").value = name;
+            document.getElementById("catDesc").value = desc;
+            document.getElementById("deptSelect").value = deptId;
+            document.getElementById("displayOrder").value = order;
+            document.getElementById("formTitle").innerText = "📝 تعديل الفئة";
+            document.getElementById("cancelBtn").style.display = "block";
+            document.getElementById("saveBtn").innerText = "تحديث الآن";
+        }
+
+        function resetForm() {
+            document.getElementById("categoryId").value = "";
+            document.getElementById("catName").value = "";
+            document.getElementById("catDesc").value = "";
+            document.getElementById("deptSelect").value = "";
+            document.getElementById("displayOrder").value = 1;
+            document.getElementById("formTitle").innerText = "✨ إضافة فئة جديدة";
+            document.getElementById("cancelBtn").style.display = "none";
+            document.getElementById("saveBtn").innerText = "حفظ الفئة";
+        }
+
+        async function deleteCategory(id) {
+            if (confirm("حذف؟")) {
+                await fetch(`${API_URL}/api/v1/Categories/${id}`, { method: 'DELETE', headers: { 'Authorization': `Bearer ${token}` } });
+                loadCategories();
+            }
+        }
+
+        loadDepartments().then(() => loadCategories());
+    </script>
+</body>
+</html>

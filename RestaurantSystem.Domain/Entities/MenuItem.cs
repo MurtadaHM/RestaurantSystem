@@ -3,37 +3,60 @@ using System.Collections.Generic;
 
 namespace RestaurantSystem.Domain.Entities
 {
+    /// <summary>
+    /// صنف من أصناف المنيو (طبق، مشروب، إلخ)
+    /// </summary>
     public class MenuItem : BaseEntity
     {
-        /// <summary>اسم المنتج</summary>
-        public string Name { get; set; } = string.Empty;   // ✅ Required
+        /// <summary>اسم المنتج (مثلاً: كباب لحم، عصير ليمون)</summary>
+        public string Name { get; set; } = string.Empty;
 
-        /// <summary>وصف المنتج</summary>
-        public string? Description { get; set; }            // ✅ nullable
+        /// <summary>وصف المنتج (المكونات أو طريقة التحضير)</summary>
+        public string? Description { get; set; }
 
-        /// <summary>سعر المنتج</summary>
-        public decimal Price { get; set; }                  // ✅ Required
+        /// <summary>سعر المنتج بالعملة المحلية</summary>
+        public decimal Price { get; set; }
 
-        /// <summary>صورة المنتج</summary>
-        public string? ImageUrl { get; set; }               // ✅ nullable
+        /// <summary>رابط صورة المنتج</summary>
+        public string? ImageUrl { get; set; }
 
-        /// <summary>معرّف الفئة</summary>
-        public Guid CategoryId { get; set; }                // ✅ Required
-
-        /// <summary>هل المنتج متاح للطلب</summary>
+        /// <summary>هل الصنف متاح حالياً للطلب؟</summary>
         public bool IsAvailable { get; set; } = true;
 
-        /// <summary>السعرات الحرارية (اختياري)</summary>
-        public int? Calories { get; set; }                  // ✅ nullable
+        /// <summary>السعرات الحرارية</summary>
+        public int? Calories { get; set; }
 
-        /// <summary>المكونات الرئيسية</summary>
-        public string? Ingredients { get; set; }            // ✅ nullable
+        /// <summary>المكونات الرئيسية للحساسية أو المعلومات العامة</summary>
+        public string? Ingredients { get; set; }
 
-        /// <summary>وقت التحضير بالدقائق</summary>
+        /// <summary>الوقت المتوقع للتحضير (بالدقائق)</summary>
         public int PreparationTimeMinutes { get; set; } = 15;
 
+        // ──────────────────────────────────────────
+        // العلاقات (Foreign Keys)
+        // ──────────────────────────────────────────
+
+        /// <summary>معرّف القسم المسؤول عن التحضير (مطبخ، بارستا، أراكيل)</summary>
+        public Guid DepartmentId { get; set; }
+
+        /// <summary>معرّف الفئة التسويقية (مقبلات، مشروبات ساخنة، إلخ)</summary>
+        public Guid CategoryId { get; set; }
+
+        // ──────────────────────────────────────────
         // Navigation Properties
-        public Category? Category { get; set; }
-        public ICollection<OrderItem> OrderItems { get; set; } = new List<OrderItem>();
+        // ──────────────────────────────────────────
+
+        /// <summary>القسم التشغيلي المرتبط</summary>
+        public virtual Department? Department { get; set; }
+
+        /// <summary>الفئة المرتبطة</summary>
+        public virtual Category? Category { get; set; }
+
+        /// <summary>سجل الطلبات المرتبطة بهذا الصنف</summary>
+        public virtual ICollection<OrderItem> OrderItems { get; set; } = new List<OrderItem>();
+
+        // 🔥 التحديث الجديد لربط المخزن (الذكاء الاصطناعي للمطعم)
+        /// <summary>المكونات الأولية (الوصفة) المرتبطة بهذا الصنف لغرض خصم المخزن</summary>
+        public virtual ICollection<MenuItemIngredient> MenuItemIngredients { get; set; } = new List<MenuItemIngredient>();
     }
 }

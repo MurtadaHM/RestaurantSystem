@@ -6,7 +6,7 @@ using RestaurantSystem.Domain.Entities;
 
 namespace RestaurantSystem.Application.Services.Implementations
 {
-    public class CategoryService : ICategoryService  // ✅ public + implements interface
+    public class CategoryService : ICategoryService
     {
         private readonly ICategoryRepository _categoryRepository;
         private readonly IMapper _mapper;
@@ -22,21 +22,18 @@ namespace RestaurantSystem.Application.Services.Implementations
         // ──────────────────────────────────────────
         // Create
         // ──────────────────────────────────────────
-        public async Task<CategoryResponseDto> CreateCategoryAsync(
-            CreateCategoryRequestDto request)
+        public async Task<CategoryResponseDto> CreateCategoryAsync(CreateCategoryRequestDto request)
         {
-            // ✅ نتحقق من عدم تكرار الاسم
             var exists = await _categoryRepository.ExistsByNameAsync(request.Name);
             if (exists)
                 throw new Exception("اسم الفئة مستخدم بالفعل");
 
             var category = _mapper.Map<Category>(request);
-            category.CreatedAt = DateTime.UtcNow;
-            category.UpdatedAt = DateTime.UtcNow;
 
             await _categoryRepository.AddAsync(category);
 
-            return _mapper.Map<CategoryResponseDto>(category);
+            // لضمان استرجاع اسم القسم في الـ DTO بعد الإضافة
+            return await GetCategoryByIdAsync(category.Id);
         }
 
         // ──────────────────────────────────────────
@@ -44,7 +41,7 @@ namespace RestaurantSystem.Application.Services.Implementations
         // ──────────────────────────────────────────
         public async Task<CategoryResponseDto> GetCategoryByIdAsync(Guid id)
         {
-            // ✅ نستخدم دالة تجلب الفئة مع عدد المنتجات
+            // تأكد أن المستودع (Repository) يستخدم .Include(c => c.Department)
             var category = await _categoryRepository.GetCategoryWithItemCountAsync(id);
 
             if (category == null)
@@ -55,25 +52,31 @@ namespace RestaurantSystem.Application.Services.Implementations
 
         public async Task<IEnumerable<CategoryResponseDto>> GetAllCategoriesAsync()
         {
-            // ✅ نجلب كل الفئات مع عدد منتجاتها
+            // 💡 ملاحظة مهندس: يجب أن تقوم دالة GetAllWithItemCountAsync 
+            // بداخل الـ Repository بعمل .Include(c => c.Department)
             var categories = await _categoryRepository.GetAllWithItemCountAsync();
+            return _mapper.Map<IEnumerable<CategoryResponseDto>>(categories);
+        }
+
+        // 🆕 الوظيفة الجديدة: جلب الفئات التابعة لقسم معين
+        public async Task<IEnumerable<CategoryResponseDto>> GetCategoriesByDepartmentAsync(Guid departmentId)
+        {
+            // نفترض وجود دالة في الـ Repository تفلتر حسب القسم مع Include
+            var categories = await _categoryRepository.FindAsync(c => c.DepartmentId == departmentId && !c.IsDeleted);
             return _mapper.Map<IEnumerable<CategoryResponseDto>>(categories);
         }
 
         // ──────────────────────────────────────────
         // Update
         // ──────────────────────────────────────────
-        public async Task<CategoryResponseDto> UpdateCategoryAsync(
-            Guid id, UpdateCategoryRequestDto request)
+        public async Task<CategoryResponseDto> UpdateCategoryAsync(Guid id, UpdateCategoryRequestDto request)
         {
             var category = await _categoryRepository.GetByIdAsync(id);
 
             if (category == null)
                 throw new Exception("الفئة غير موجودة");
 
-            // ✅ نتحقق من تكرار الاسم فقط لو تغيّر
-            if (!string.Equals(category.Name, request.Name,
-                    StringComparison.OrdinalIgnoreCase))
+            if (!string.Equals(category.Name, request.Name, StringComparison.OrdinalIgnoreCase))
             {
                 var nameExists = await _categoryRepository.ExistsByNameAsync(request.Name);
                 if (nameExists)
@@ -85,7 +88,8 @@ namespace RestaurantSystem.Application.Services.Implementations
 
             await _categoryRepository.UpdateAsync(category);
 
-            return _mapper.Map<CategoryResponseDto>(category);
+            // نعود لجلبها بالكامل لضمان تحديث اسم القسم إذا تغير
+            return await GetCategoryByIdAsync(category.Id);
         }
 
         // ──────────────────────────────────────────
@@ -94,11 +98,8 @@ namespace RestaurantSystem.Application.Services.Implementations
         public async Task<bool> DeleteCategoryAsync(Guid id)
         {
             var category = await _categoryRepository.GetByIdAsync(id);
+            if (category == null) return false;
 
-            if (category == null)
-                return false;
-
-            // ✅ نمنع الحذف لو فيها منتجات
             var hasItems = await _categoryRepository.HasMenuItemsAsync(id);
             if (hasItems)
                 throw new Exception("لا يمكن حذف الفئة لأنها تحتوي على منتجات");

@@ -1,0 +1,291 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <title>إدارة المخزن الذكي | KDS Inventory</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        :root {
+            --primary-dark: #1e272e;
+            --accent: #2ecc71;
+            --blue-modal: #2575fc;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, sans-serif;
+            background: #f1f2f6;
+        }
+
+        .card {
+            border-radius: 15px;
+            border: none;
+            box-shadow: 0 8px 20px rgba(0,0,0,0.08);
+        }
+
+        .table thead {
+            background: var(--primary-dark);
+            color: white;
+        }
+
+        .low-stock {
+            background-color: #fff3cd !important;
+            border-right: 5px solid #ffc107;
+        }
+
+        .out-of-stock {
+            background-color: #ffebee !important;
+            border-right: 5px solid #d63031;
+        }
+
+        .badge-unit {
+            background: #dfe6e9;
+            color: #2d3436;
+            font-weight: bold;
+            padding: 8px 12px;
+        }
+
+        .modal-header.blue-header {
+            background: linear-gradient(135deg, #2575fc 0%, #6a11cb 100%);
+            color: white;
+            border: none;
+        }
+    </style>
+</head>
+<body class="p-4">
+
+    <div class="container-fluid">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <div>
+                <h2 class="fw-bold"><i class="fas fa-boxes-stacked text-warning"></i> لوحة تحكم المخازن</h2>
+                <p class="text-muted">إدارة المواد: <span id="itemCount" class="badge bg-primary">0</span> مواد حالياً</p>
+            </div>
+            <div class="d-flex gap-2">
+                <input type="text" id="searchInput" class="form-control" placeholder="بحث سريع..." onkeyup="filterTable()" style="width: 200px;">
+                <button class="btn btn-outline-success fw-bold" data-bs-toggle="modal" data-bs-target="#createIngredientModal">
+                    <i class="fas fa-plus"></i> تعريف مادة جديدة
+                </button>
+            </div>
+        </div>
+
+        <div class="card overflow-hidden">
+            <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0 text-center">
+                    <thead>
+                        <tr>
+                            <th>المادة</th>
+                            <th>الكمية المتاحة</th>
+                            <th>الحد الأدنى</th>
+                            <th>سعر الوحدة</th>
+                            <th>الحالة</th>
+                            <th>إجراءات</th>
+                        </tr>
+                    </thead>
+                    <tbody id="inventoryTable"></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal fade" id="createIngredientModal" tabindex="-1">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content card">
+                <div class="modal-header blue-header">
+                    <h5 class="fw-bold m-0"><i class="fas fa-plus-circle"></i> تعريف مادة جديدة بالنظام</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body p-4">
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">اسم المادة:</label>
+                        <input type="text" id="newName" class="form-control" placeholder="مثل: طحين، جبن...">
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label fw-bold">الكمية الابتدائية:</label>
+                            <input type="number" id="newInitialQty" class="form-control" value="0">
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label fw-bold">وحدة القياس:</label>
+                            <select id="newUnit" class="form-select">
+                                <option value="Kilogram">كيلو غرام (Kg)</option>
+                                <option value="Gram">غرام (g)</option>
+                                <option value="Liter">لتر (L)</option>
+                                <option value="Piece">قطعة (Pcs)</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label fw-bold">سعر الوحدة:</label>
+                            <input type="number" id="newPrice" class="form-control" value="0">
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label fw-bold">حد الإنذار:</label>
+                            <input type="number" id="newThreshold" class="form-control" value="5">
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer border-0">
+                    <button class="btn btn-success w-100 py-2 fw-bold" onclick="createNewIngredient()">إضافة للمخزن ✓</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal fade" id="editIngredientModal" tabindex="-1">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content card">
+                <div class="modal-header blue-header">
+                    <h5 class="fw-bold m-0"><i class="fas fa-edit"></i> تعديل بيانات المادة</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body p-4">
+                    <input type="hidden" id="editId">
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">اسم المادة:</label>
+                        <input type="text" id="editName" class="form-control">
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label fw-bold">الكمية الحالية:</label>
+                            <input type="number" id="editQty" class="form-control" style="background-color: #f1f2f6;">
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label fw-bold">وحدة القياس:</label>
+                            <select id="editUnit" class="form-select">
+                                <option value="Kilogram">Kilogram</option>
+                                <option value="Gram">Gram</option>
+                                <option value="Liter">Liter</option>
+                                <option value="Piece">Piece (Pcs)</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label fw-bold">سعر الوحدة:</label>
+                            <input type="number" id="editPrice" class="form-control">
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label fw-bold">حد الإنذار:</label>
+                            <input type="number" id="editThreshold" class="form-control">
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer border-0">
+                    <button class="btn btn-primary w-100 py-2 fw-bold" onclick="updateIngredient()">حفظ التغييرات ✓</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal fade" id="historyModal" tabindex="-1">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content card">
+                <div class="modal-header"><h5>سجل الحركات</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+                <div class="modal-body"><table class="table"><thead class="table-light"><tr><th>التاريخ</th><th>النوع</th><th>الكمية</th><th>السبب</th></tr></thead><tbody id="historyBody"></tbody></table></div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        const API_BASE = `${window.location.origin}/api/v1`;
+        const token = localStorage.getItem("authToken");
+        let allIngredients = [];
+
+        async function loadInventory() {
+            try {
+                const res = await fetch(`${API_BASE}/Inventory`, { headers: { 'Authorization': `Bearer ${token}` } });
+                const result = await res.json();
+                if (result.success) {
+                    allIngredients = result.data;
+                    document.getElementById('itemCount').innerText = allIngredients.length;
+                    renderTable(allIngredients);
+                }
+            } catch (err) { alert("خطأ في جلب البيانات"); }
+        }
+
+        function renderTable(items) {
+            document.getElementById('inventoryTable').innerHTML = items.map(item => `
+                    <tr class="${item.currentStock <= 0 ? 'out-of-stock' : (item.isLowStock ? 'low-stock' : '')}">
+                        <td class="fw-bold">${item.name}</td>
+                        <td><span class="badge badge-unit text-dark">${item.currentStock.toFixed(3)} ${item.unit}</span></td>
+                        <td>${item.minThreshold}</td>
+                        <td>${item.unitPrice.toLocaleString()} د.ع</td>
+                        <td>${item.currentStock <= 0 ? '❌ نافذ' : (item.isLowStock ? '⚠️ منخفض' : '✅ جيد')}</td>
+                        <td>
+                            <button class="btn btn-sm btn-outline-primary" onclick="openEditModal('${item.id}')"><i class="fas fa-edit"></i></button>
+                            <button class="btn btn-sm btn-outline-dark" onclick="viewHistory('${item.id}', '${item.name}')"><i class="fas fa-history"></i></button>
+                        </td>
+                    </tr>`).join('');
+        }
+
+        async function createNewIngredient() {
+            const payload = {
+                name: document.getElementById('newName').value,
+                initialStock: parseFloat(document.getElementById('newInitialQty').value), // يتوافق مع DTO
+                minThreshold: parseFloat(document.getElementById('newThreshold').value),
+                unit: document.getElementById('newUnit').value,
+                unitPrice: parseFloat(document.getElementById('newPrice').value)
+            };
+
+            const res = await fetch(`${API_BASE}/Inventory`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+                body: JSON.stringify(payload)
+            });
+
+            if (res.ok) {
+                bootstrap.Modal.getInstance(document.getElementById('createIngredientModal')).hide();
+                loadInventory();
+            }
+        }
+
+        function openEditModal(id) {
+            const item = allIngredients.find(i => i.id === id);
+            if (!item) return;
+
+            document.getElementById('editId').value = item.id;
+            document.getElementById('editName').value = item.name;
+            document.getElementById('editQty').value = item.currentStock; // عرض الكمية للتعديل
+            document.getElementById('editUnit').value = item.unit;
+            document.getElementById('editPrice').value = item.unitPrice;
+            document.getElementById('editThreshold').value = item.minThreshold;
+
+            new bootstrap.Modal(document.getElementById('editIngredientModal')).show();
+        }
+
+        async function updateIngredient() {
+            const id = document.getElementById('editId').value;
+            const payload = {
+                name: document.getElementById('editName').value,
+                initialStock: parseFloat(document.getElementById('editQty').value), // نمرر الكمية الجديدة كـ InitialStock للتصحيح
+                unit: document.getElementById('editUnit').value,
+                unitPrice: parseFloat(document.getElementById('editPrice').value),
+                minThreshold: parseFloat(document.getElementById('editThreshold').value)
+            };
+
+            const res = await fetch(`${API_BASE}/Inventory/${id}`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+                body: JSON.stringify(payload)
+            });
+
+            if (res.ok) {
+                bootstrap.Modal.getInstance(document.getElementById('editIngredientModal')).hide();
+                loadInventory();
+            }
+        }
+
+        async function viewHistory(id, name) {
+            const res = await fetch(`${API_BASE}/Inventory/${id}/history`, { headers: { 'Authorization': `Bearer ${token}` } });
+            const result = await res.json();
+            document.getElementById('historyBody').innerHTML = result.data.map(h => `
+                    <tr><td>${new Date(h.createdAt).toLocaleString()}</td><td>${h.type === 'Addition' ? '+' : '-'}</td><td>${h.quantity}</td><td>${h.reason}</td></tr>`).join('');
+            new bootstrap.Modal(document.getElementById('historyModal')).show();
+        }
+
+        loadInventory();
+    </script>
+</body>
+</html>

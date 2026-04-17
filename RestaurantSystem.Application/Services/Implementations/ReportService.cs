@@ -6,33 +6,46 @@ using RestaurantSystem.Application.Contracts.Repositories;
 using RestaurantSystem.Application.DTOs.Reports;
 using RestaurantSystem.Application.Services.Interfaces;
 
-namespace RestaurantSystem.Application.Services.Implementations // ✅ يفضل استخدام Implementations للتنظيم
+namespace RestaurantSystem.Application.Services.Implementations
 {
     public class ReportService : IReportService
     {
         private readonly IOrderRepository _orderRepository;
-        private readonly IMenuRepository _menuRepository;
 
-        public ReportService(IOrderRepository orderRepository, IMenuRepository menuRepository)
+        public ReportService(IOrderRepository orderRepository)
         {
             _orderRepository = orderRepository;
-            _menuRepository = menuRepository;
         }
 
         public async Task<DashboardSummaryDto> GetDashboardSummaryAsync(DateTime startDate, DateTime endDate)
         {
             var orders = await _orderRepository.GetAllOrdersWithDetailsAsync();
 
-            // تصفية حسب التاريخ والحالات المكتملة فقط مع استثناء المحذوف
             var filteredOrders = orders.Where(o => o.CreatedAt >= startDate && o.CreatedAt <= endDate && !o.IsDeleted);
 
             return new DashboardSummaryDto
             {
                 TotalRevenue = filteredOrders.Sum(o => o.TotalAmount),
                 TotalOrders = filteredOrders.Count(),
-                // استخدام ! لأن UserId لا يمكن أن يكون null في منطق النظام
                 TotalCustomers = filteredOrders.Select(o => o.UserId).Distinct().Count()
             };
+        }
+
+        public async Task<IEnumerable<DepartmentSalesDto>> GetSalesByDepartmentAsync()
+        {
+            var orders = await _orderRepository.GetAllOrdersWithDetailsAsync();
+
+            return orders
+                .SelectMany(o => o.OrderItems)
+                .Where(oi => oi.MenuItem != null && oi.MenuItem.Department != null)
+                .GroupBy(oi => oi.MenuItem!.Department!.Name)
+                .Select(g => new DepartmentSalesDto
+                {
+                    DepartmentName = g.Key,
+                    TotalSales = g.Sum(x => x.Quantity * x.Price),
+                    ItemsSold = g.Sum(x => x.Quantity) // ✅ تم تصحيح الاسم هنا من ItemsCount إلى ItemsSold
+                })
+                .OrderByDescending(x => x.TotalSales);
         }
 
         public async Task<IEnumerable<TopMenuItemDto>> GetTopSellingItemsAsync(int count)
@@ -41,7 +54,6 @@ namespace RestaurantSystem.Application.Services.Implementations // ✅ يفضل 
 
             return orders
                 .SelectMany(o => o.OrderItems)
-                // ✅ حل تحذير الـ Null: التأكد من وجود الوجبة قبل التجميع
                 .Where(oi => oi.MenuItem != null)
                 .GroupBy(oi => oi.MenuItem!.Name)
                 .Select(g => new TopMenuItemDto
@@ -60,7 +72,6 @@ namespace RestaurantSystem.Application.Services.Implementations // ✅ يفضل 
 
             return orders
                 .SelectMany(o => o.OrderItems)
-                // ✅ حل تحذير الـ Null: التأكد من وجود الوجبة والفئة التابعة لها
                 .Where(oi => oi.MenuItem != null && oi.MenuItem.Category != null)
                 .GroupBy(oi => oi.MenuItem!.Category!.Name)
                 .Select(g => new CategorySalesDto

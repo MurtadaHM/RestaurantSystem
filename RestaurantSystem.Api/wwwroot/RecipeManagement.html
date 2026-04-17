@@ -1,0 +1,304 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <title>مختبر بناء الوصفات | Recipe Lab</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        :root {
+            --primary: #2d3436;
+            --accent: #e67e22;
+            --bg: #f4f7f6;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, sans-serif;
+            background: var(--bg);
+            padding: 20px;
+        }
+
+        .builder-card {
+            border-radius: 15px;
+            border: none;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.05);
+            background: white;
+        }
+
+        .step-header {
+            border-right: 5px solid var(--accent);
+            padding-right: 15px;
+            margin-bottom: 20px;
+            color: var(--primary);
+            font-weight: bold;
+        }
+
+        .table thead {
+            background: var(--primary);
+            color: white;
+        }
+
+        .loading-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(255,255,255,0.8);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+        }
+    </style>
+</head>
+<body>
+
+    <div id="loader" class="loading-overlay">🔄 جاري مزامنة المنيو والمخزن...</div>
+
+    <div class="container">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h2 class="fw-bold"><i class="fas fa-flask text-warning"></i> مختبر الوصفات الذكي</h2>
+            <div id="syncBadge" class="badge bg-success">متصل بالبث المباشر v1</div>
+        </div>
+
+        <div class="row">
+            <div class="col-lg-4">
+                <div class="builder-card p-4 mb-4">
+                    <h5 class="step-header">1. اختيار المستهدف</h5>
+
+                    <label class="small fw-bold">القسم (Department):</label>
+                    <select id="deptSelect" class="form-select mb-3" onchange="filterCategories()">
+                        <option value="">-- اختر القسم --</option>
+                    </select>
+
+                    <label class="small fw-bold">الفئة (Category):</label>
+                    <select id="catSelect" class="form-select mb-3" onchange="filterMenuItems()" disabled>
+                        <option value="">-- اختر القسم أولاً --</option>
+                    </select>
+
+                    <label class="small fw-bold text-primary">الطبق المراد برمجته (Menu Item):</label>
+                    <select id="menuItemSelect" class="form-select form-select-lg border-primary shadow-sm" onchange="fetchCurrentRecipe(this.value)" disabled>
+                        <option value="">-- اختر الفئة أولاً --</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="col-lg-8">
+                <div class="builder-card p-4 h-100">
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <h5 class="step-header">2. المكونات والمقادير</h5>
+                        <button class="btn btn-dark btn-sm" onclick="addIngredientRow()">
+                            <i class="fas fa-plus"></i> إضافة مادة مخزنية
+                        </button>
+                    </div>
+
+                    <div class="table-responsive">
+                        <table class="table table-hover align-middle">
+                            <thead>
+                                <tr>
+                                    <th>المادة الأولية</th>
+                                    <th style="width: 180px;">الكمية (لكل وجبة)</th>
+                                    <th class="text-center">إجراء</th>
+                                </tr>
+                            </thead>
+                            <tbody id="recipeBody"></tbody>
+                        </table>
+                    </div>
+
+                    <div id="emptyMsg" class="text-center py-5 text-muted border border-dashed rounded">
+                        <i class="fas fa-mortar-pestle fa-2x mb-3 opacity-25"></i><br>
+                        بانتظار اختيار طبق لعرض أو بناء وصفته
+                    </div>
+
+                    <div class="mt-4 pt-3 border-top d-flex justify-content-end gap-2">
+                        <button class="btn btn-outline-secondary" onclick="resetTable()">تفريغ</button>
+                        <button class="btn btn-primary px-5 fw-bold" onclick="saveRecipe()" id="saveBtn" disabled>
+                            <i class="fas fa-save"></i> حفظ الوصفة النهائية
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        const API_URL = window.location.origin;
+        const token = localStorage.getItem("authToken");
+
+        let allCategories = [];
+        let allMenuItems = [];
+        let allIngredients = [];
+
+        async function init() {
+            if (!token) window.location.href = "login.html";
+            showLoader(true);
+
+            try {
+                // جلب كل البيانات بأسلوب الـ Promise لضمان التزامن
+                const [dRes, cRes, mRes, iRes] = await Promise.all([
+                    fetch(`${API_URL}/api/v1/Departments`, { headers: { 'Authorization': `Bearer ${token}` } }),
+                    fetch(`${API_URL}/api/v1/Categories`, { headers: { 'Authorization': `Bearer ${token}` } }),
+                    fetch(`${API_URL}/api/v1/Menu`, { headers: { 'Authorization': `Bearer ${token}` } }),
+                    fetch(`${API_URL}/api/v1/Inventory`, { headers: { 'Authorization': `Bearer ${token}` } })
+                ]);
+
+                const depts = await dRes.json();
+                const cats = await cRes.json();
+                const menu = await mRes.json();
+                const ings = await iRes.json();
+
+                if (depts.success) {
+                    document.getElementById("deptSelect").innerHTML = '<option value="">-- اختر القسم --</option>' +
+                        depts.data.map(d => `<option value="${d.id}">${d.name}</option>`).join('');
+                }
+
+                allCategories = cats.success ? cats.data : [];
+                allMenuItems = menu.success ? menu.data : [];
+                allIngredients = ings.success ? ings.data : [];
+
+                // 🕵️ نظام تشخيص في الكونسول (اضغط F12 لرؤيته)
+                console.log("=== تشخيص النظام الذكي ===");
+                console.log("عدد الأطباق المستلمة:", allMenuItems.length);
+                if (allMenuItems.length > 0) console.table(allMenuItems.slice(0, 3)); // عرض عينة أطباق
+
+            } catch (err) { alert("🔴 فشل الاتصال بالسيرفر"); }
+            showLoader(false);
+        }
+
+        // 1. فلترة الأصناف (Categories)
+        function filterCategories() {
+            const deptId = document.getElementById("deptSelect").value;
+            const catSelect = document.getElementById("catSelect");
+
+            // المقارنة تتم بـ String وتدعم PascalCase و camelCase
+            const filtered = allCategories.filter(c => String(c.departmentId || c.DepartmentId) === String(deptId));
+
+            catSelect.innerHTML = '<option value="">-- اختر الفئة --</option>' +
+                filtered.map(c => `<option value="${c.id}">${c.name}</option>`).join('');
+
+            catSelect.disabled = filtered.length === 0;
+            document.getElementById("menuItemSelect").disabled = true;
+            document.getElementById("menuItemSelect").innerHTML = '<option value="">-- اختر الفئة أولاً --</option>';
+        }
+
+        // 2. فلترة الأطباق (Menu Items) 🔥 الحل هنا!
+        function filterMenuItems() {
+            const catId = document.getElementById("catSelect").value;
+            const itemSelect = document.getElementById("menuItemSelect");
+
+            if (!catId) return;
+
+            // فلترة ذكية جداً تفحص الحقل بكل حالاته
+            const filtered = allMenuItems.filter(m => {
+                const mCatId = m.categoryId || m.CategoryId; // فحص الصورتين
+                return String(mCatId).toLowerCase() === String(catId).toLowerCase();
+            });
+
+            console.log(`فلترة للفئة ${catId}: وجدنا ${filtered.length} طبق`);
+
+            if (filtered.length > 0) {
+                itemSelect.innerHTML = '<option value="">-- اختر الطبق --</option>' +
+                    filtered.map(m => `<option value="${m.id}">${m.name}</option>`).join('');
+                itemSelect.disabled = false;
+            } else {
+                itemSelect.innerHTML = '<option value="">لا توجد أطباق بهذا النوع</option>';
+                itemSelect.disabled = true;
+            }
+        }
+
+        // 3. جلب الوصفة الحالية للطبق من المخزن
+        async function fetchCurrentRecipe(menuItemId) {
+            const tbody = document.getElementById("recipeBody");
+            const saveBtn = document.getElementById("saveBtn");
+
+            tbody.innerHTML = "";
+            if (!menuItemId) {
+                saveBtn.disabled = true;
+                document.getElementById("emptyMsg").style.display = "block";
+                return;
+            }
+
+            saveBtn.disabled = false;
+            document.getElementById("emptyMsg").style.display = "none";
+
+            try {
+                const resp = await fetch(`${API_URL}/api/v1/Inventory/recipe/${menuItemId}`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                const res = await resp.json();
+                if (res.success && res.data && res.data.length > 0) {
+                    res.data.forEach(item => addIngredientRow(item));
+                }
+            } catch (err) { console.error(err); }
+        }
+
+        function addIngredientRow(data = { ingredientId: '', quantity: 0 }) {
+            document.getElementById("emptyMsg").style.display = "none";
+            const tbody = document.getElementById("recipeBody");
+            const row = document.createElement("tr");
+
+            // استخراج المعرف لضمان السلكت
+            const currentIngId = data.ingredientId || data.IngredientId;
+
+            row.innerHTML = `
+                    <td>
+                        <select class="form-select shadow-sm" onchange="updateRowUnit(this)">
+                            <option value="">-- مادة المخزن --</option>
+                            ${allIngredients.map(i => `<option value="${i.id}" data-unit="${i.unit}" ${i.id === currentIngId ? 'selected' : ''}>${i.name}</option>`).join('')}
+                        </select>
+                    </td>
+                    <td>
+                        <div class="input-group">
+                            <input type="number" class="form-control fw-bold text-center" value="${data.quantity || 0}" step="0.001">
+                            <span class="input-group-text bg-light unit-display">${currentIngId ? getUnitById(currentIngId) : '--'}</span>
+                        </div>
+                    </td>
+                    <td class="text-center">
+                        <button class="btn btn-link text-danger p-0" onclick="this.closest('tr').remove()"><i class="fas fa-trash-alt fa-lg"></i></button>
+                    </td>
+                `;
+            tbody.appendChild(row);
+        }
+
+        function getUnitById(id) {
+            const ing = allIngredients.find(x => x.id === id);
+            return ing ? ing.unit : '--';
+        }
+
+        function updateRowUnit(select) {
+            const unit = select.options[select.selectedIndex].dataset.unit || '--';
+            select.closest('tr').querySelector('.unit-display').innerText = unit;
+        }
+
+        async function saveRecipe() {
+            const menuItemId = document.getElementById("menuItemSelect").value;
+            const rows = document.querySelectorAll("#recipeBody tr");
+
+            const payload = Array.from(rows).map(row => ({
+                ingredientId: row.querySelector('select').value,
+                quantity: parseFloat(row.querySelector('input').value)
+            })).filter(x => x.ingredientId && x.quantity > 0);
+
+            if (payload.length === 0) return alert("أضف مكونات صحيحة أولاً");
+
+            try {
+                const resp = await fetch(`${API_URL}/api/v1/Inventory/recipe/${menuItemId}`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+                    body: JSON.stringify(payload)
+                });
+
+                if (resp.ok) alert("✅ تم ربط المكونات بالطبق بنجاح!");
+                else alert("❌ فشل الحفظ، تأكد من البيانات");
+            } catch (err) { alert("🔴 خطأ اتصال"); }
+        }
+
+        function showLoader(show) { document.getElementById("loader").style.display = show ? 'flex' : 'none'; }
+        function resetTable() { if (confirm("هل تريد تفريغ الجدول؟")) document.getElementById("recipeBody").innerHTML = ""; }
+
+        init();
+    </script>
+</body>
+</html>

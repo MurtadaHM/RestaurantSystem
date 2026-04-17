@@ -1,27 +1,39 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Threading.Tasks;
-using RestaurantSystem.Application.DTOs.Menu;
+﻿using RestaurantSystem.Application.DTOs.Menu;
 
 namespace RestaurantSystem.Application.Services.Interfaces
 {
+    /// <summary>
+    /// واجهة خدمات إدارة أصناف المنيو (المحرك البرمجي لقائمة الطعام)
+    /// </summary>
     public interface IMenuService
     {
-        // Create
+        // ──────────────────────────────────────────
+        // 1. العمليات الأساسية (CRUD)
+        // ──────────────────────────────────────────
         Task<MenuItemResponseDto> CreateMenuItemAsync(CreateMenuItemRequestDto request);
-
-        // Read (تم تحويل int إلى Guid)
         Task<MenuItemResponseDto> GetMenuItemByIdAsync(Guid id);
         Task<IEnumerable<MenuItemResponseDto>> GetAllMenuItemsAsync();
-        Task<IEnumerable<MenuItemResponseDto>> GetMenuItemsByCategoryAsync(Guid categoryId);
-
-        // Update (تم تحويل int إلى Guid)
         Task<MenuItemResponseDto> UpdateMenuItemAsync(Guid id, UpdateMenuItemRequestDto request);
-
-        // Delete (تم تحويل int إلى Guid)
         Task<bool> DeleteMenuItemAsync(Guid id);
 
-        // Search
+        // ──────────────────────────────────────────
+        // 2. الفلترة والبحث الذكي
+        // ──────────────────────────────────────────
+        Task<IEnumerable<MenuItemResponseDto>> GetMenuItemsByCategoryAsync(Guid categoryId);
+        Task<IEnumerable<MenuItemResponseDto>> GetMenuItemsByDepartmentAsync(Guid departmentId);
         Task<IEnumerable<MenuItemResponseDto>> SearchMenuItemsAsync(string searchTerm);
+
+        // ──────────────────────────────────────────
+        // 3. وظائف متقدمة (Management & Analytics) 🔥
+        // ──────────────────────────────────────────
+
+        // جلب الأصناف المتوفرة فقط (تستخدم في منيو الزبائن)
+        Task<IEnumerable<MenuItemResponseDto>> GetAvailableMenuItemsAsync();
+
+        // جلب الأصناف الأكثر مبيعاً (للإحصائيات)
+        Task<IEnumerable<MenuItemResponseDto>> GetMostOrderedMenuItemsAsync(int topCount = 10);
+
+        // تحديث حالة التوفر (متوفر/منفذ) بسرعة من شاشة المطبخ
+        Task<bool> ToggleMenuItemAvailabilityAsync(Guid id, bool isAvailable);
     }
 }
