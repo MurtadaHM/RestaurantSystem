@@ -4,7 +4,7 @@ using System.Text.Json.Serialization;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
-using RestaurantSystem.Api.Configurations;
+using Microsoft.OpenApi.Models;
 using RestaurantSystem.Api.Filters;
 using RestaurantSystem.Api.Hubs;
 using RestaurantSystem.Api.Middlewares;
@@ -43,7 +43,38 @@ builder.Services.AddSignalR();
 // ============================================================
 // 2) Swagger + Application + Infrastructure
 // ============================================================
-builder.Services.AddSwaggerDocumentation();
+builder.Services.AddEndpointsApiExplorer();
+builder.Services.AddSwaggerGen(options =>
+{
+    options.SwaggerDoc("v1", new OpenApiInfo
+    {
+        Title = "RestaurantSystem API",
+        Version = "v1"
+    });
+
+    var jwtSecurityScheme = new OpenApiSecurityScheme
+    {
+        BearerFormat = "JWT",
+        Name = "Authorization",
+        In = ParameterLocation.Header,
+        Type = SecuritySchemeType.Http,
+        Scheme = "bearer",
+        Description = "Put ONLY your JWT Bearer token here.",
+
+        Reference = new OpenApiReference
+        {
+            Id = JwtBearerDefaults.AuthenticationScheme,
+            Type = ReferenceType.SecurityScheme
+        }
+    };
+
+    options.AddSecurityDefinition(jwtSecurityScheme.Reference.Id, jwtSecurityScheme);
+    options.AddSecurityRequirement(new OpenApiSecurityRequirement
+    {
+        { jwtSecurityScheme, Array.Empty<string>() }
+    });
+});
+
 builder.Services.AddApplication();
 builder.Services.AddInfrastructure(builder.Configuration);
 builder.Services.AddScoped<IOrderNotificationService, OrderNotificationService>();
@@ -104,15 +135,11 @@ builder.Services.AddAuthorization();
 // ============================================================
 builder.Services.AddCors(options =>
 {
-    options.AddPolicy("RestaurantAppPolicy", policy =>
+    options.AddPolicy("AllowFrontend", policy =>
     {
-        policy.WithOrigins(
-                "http://localhost:3000",
-                "http://localhost:5173",
-                "http://127.0.0.1:5500")
-              .AllowAnyMethod()
+        policy.AllowAnyOrigin()
               .AllowAnyHeader()
-              .AllowCredentials();
+              .AllowAnyMethod();
     });
 });
 
@@ -124,18 +151,18 @@ var app = builder.Build();
 app.UseMiddleware<ExceptionHandlingMiddleware>();
 app.UseMiddleware<LoggingMiddleware>();
 
-if (app.Environment.IsDevelopment())
+app.UseSwagger();
+app.UseSwaggerUI(options =>
 {
-    app.UseSwaggerDocumentation();
-}
+    options.SwaggerEndpoint("/swagger/v1/swagger.json", "RestaurantSystem API v1");
+    options.RoutePrefix = "swagger";
+});
 
 app.UseDefaultFiles();
 app.UseStaticFiles();
 
 app.UseRouting();
-
-app.UseCors("RestaurantAppPolicy");
-
+app.UseCors("AllowFrontend");
 app.UseAuthentication();
 app.UseAuthorization();
 
@@ -153,12 +180,7 @@ using (var scope = app.Services.CreateScope())
     {
         var context = services.GetRequiredService<ApplicationDbContext>();
 
-        // إذا عندك migrations جاهزة فالأفضل هذا:
-        // await context.Database.MigrateAsync();
-
-        // وإذا أنت حاليًا تعتمد EnsureCreated بالمشروع، خليه مؤقتًا:
         await context.Database.MigrateAsync();
-
         await DbInitializer.SeedAsync(context);
 
         var logger = services.GetRequiredService<ILogger<Program>>();

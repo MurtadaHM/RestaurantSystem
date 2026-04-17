@@ -1,0 +1,10 @@
+**/bin/
+**/obj/
+**/.vs/
+**/.idea/
+**/.git/
+README.md
+appsettings.json
+appsettings.Development.json
+RestaurantSystem.Api/appsettings.json
+RestaurantSystem.Api/appsettings.Development.json
