@@ -52,6 +52,9 @@ builder.Services.AddSwaggerGen(options =>
         Version = "v1"
     });
 
+    // حل مشكلة تضارب أسماء DTOs المتشابهة
+    options.CustomSchemaIds(type => type.FullName?.Replace("+", ".") ?? type.Name);
+
     var jwtSecurityScheme = new OpenApiSecurityScheme
     {
         BearerFormat = "JWT",
