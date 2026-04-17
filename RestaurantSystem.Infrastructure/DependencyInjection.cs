@@ -71,8 +71,21 @@ namespace RestaurantSystem.Infrastructure
                 client.Timeout = TimeSpan.FromSeconds(30);
             });
 
-            services.AddHostedService<ReservationStatusWorker>();
-            services.AddHostedService<Team6OrderSyncWorker>();
+            var reservationWorkerEnabled =
+                configuration.GetValue<bool?>("ReservationStatusWorker:Enabled") ?? true;
+
+            var team6WorkerEnabled =
+                configuration.GetValue<bool?>("Team6Integration:Enabled") ?? true;
+
+            if (reservationWorkerEnabled)
+            {
+                services.AddHostedService<ReservationStatusWorker>();
+            }
+
+            if (team6WorkerEnabled)
+            {
+                services.AddHostedService<Team6OrderSyncWorker>();
+            }
 
             return services;
         }
