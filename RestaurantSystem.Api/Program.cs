@@ -4,7 +4,7 @@ using System.Text.Json.Serialization;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
-using Microsoft.OpenApi.Models;
+using RestaurantSystem.Api.Configurations;
 using RestaurantSystem.Api.Filters;
 using RestaurantSystem.Api.Hubs;
 using RestaurantSystem.Api.Middlewares;
@@ -43,41 +43,7 @@ builder.Services.AddSignalR();
 // ============================================================
 // 2) Swagger + Application + Infrastructure
 // ============================================================
-builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddSwaggerGen(options =>
-{
-    options.SwaggerDoc("v1", new OpenApiInfo
-    {
-        Title = "RestaurantSystem API",
-        Version = "v1"
-    });
-
-    // حل مشكلة تضارب أسماء DTOs المتشابهة
-    options.CustomSchemaIds(type => type.FullName?.Replace("+", ".") ?? type.Name);
-
-    var jwtSecurityScheme = new OpenApiSecurityScheme
-    {
-        BearerFormat = "JWT",
-        Name = "Authorization",
-        In = ParameterLocation.Header,
-        Type = SecuritySchemeType.Http,
-        Scheme = "bearer",
-        Description = "Put ONLY your JWT Bearer token here.",
-
-        Reference = new OpenApiReference
-        {
-            Id = JwtBearerDefaults.AuthenticationScheme,
-            Type = ReferenceType.SecurityScheme
-        }
-    };
-
-    options.AddSecurityDefinition(jwtSecurityScheme.Reference.Id, jwtSecurityScheme);
-    options.AddSecurityRequirement(new OpenApiSecurityRequirement
-    {
-        { jwtSecurityScheme, Array.Empty<string>() }
-    });
-});
-
+builder.Services.AddSwaggerDocumentation();
 builder.Services.AddApplication();
 builder.Services.AddInfrastructure(builder.Configuration);
 builder.Services.AddScoped<IOrderNotificationService, OrderNotificationService>();
@@ -136,6 +102,7 @@ builder.Services.AddAuthorization();
 // ============================================================
 // 4) CORS
 // ============================================================
+// موقتاً للهكثون: مفتوح لكل الـ origins حتى يشتغل داخل mini app
 builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowFrontend", policy =>
@@ -154,18 +121,19 @@ var app = builder.Build();
 app.UseMiddleware<ExceptionHandlingMiddleware>();
 app.UseMiddleware<LoggingMiddleware>();
 
-app.UseSwagger();
-app.UseSwaggerUI(options =>
+if (app.Environment.IsDevelopment())
 {
-    options.SwaggerEndpoint("/swagger/v1/swagger.json", "RestaurantSystem API v1");
-    options.RoutePrefix = "swagger";
-});
+    app.UseSwaggerDocumentation();
+}
 
 app.UseDefaultFiles();
 app.UseStaticFiles();
 
 app.UseRouting();
+
+// لازم CORS يجي قبل Authentication / Authorization
 app.UseCors("AllowFrontend");
+
 app.UseAuthentication();
 app.UseAuthorization();
 
