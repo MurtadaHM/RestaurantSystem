@@ -52,11 +52,11 @@ HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
     CMD curl -f http://localhost:5183/swagger/index.html || exit 1
 
 # Environment setup
-ENV ASPNETCORE_URLS=http://+:5183
+ENV ASPNETCORE_URLS=http://+:${PORT:-5183}
 ENV ASPNETCORE_ENVIRONMENT=Production
 
-# Expose port
-EXPOSE 5183
+# Expose port (default to 5183)
+EXPOSE ${PORT:-5183}
 
 # Run application
 ENTRYPOINT ["dotnet", "RestaurantSystem.Api.dll"]

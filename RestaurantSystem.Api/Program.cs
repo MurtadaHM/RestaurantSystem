@@ -20,6 +20,21 @@ AppContext.SetSwitch("Npgsql.EnableLegacyTimestampBehavior", true);
 var builder = WebApplication.CreateBuilder(args);
 
 // ============================================================
+// 0) Load Connection String from Environment Variables (for Render)
+// ============================================================
+var connectionString = Environment.GetEnvironmentVariable("ConnectionStrings__DefaultConnection")
+    ?? builder.Configuration.GetConnectionString("DefaultConnection");
+
+if (string.IsNullOrWhiteSpace(connectionString))
+{
+    throw new InvalidOperationException(
+        "Connection string 'DefaultConnection' not found in appsettings or environment variables.");
+}
+
+// Override the configuration with environment variable if present
+builder.Configuration["ConnectionStrings:DefaultConnection"] = connectionString;
+
+// ============================================================
 // 1) Controllers + JSON + SignalR
 // ============================================================
 builder.Services.AddControllers(options =>
