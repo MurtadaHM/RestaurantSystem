@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>إدارة الفئات | نظام المطعم</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body class="bg-gray-50">
+    <div class="flex h-screen">
+        <!-- Sidebar -->
+        <div class="w-64 bg-gradient-to-b from-amber-900 to-amber-800 text-white p-6">
+            <div class="flex items-center gap-3 mb-8">
+                <i class="fas fa-tags text-2xl text-yellow-300"></i>
+                <h1 class="text-xl font-bold">إدارة الفئات</h1>
+            </div>
+            <button onclick="logout()" class="w-full mt-auto text-left px-4 py-3 rounded-lg bg-red-500/20 hover:bg-red-500/30 transition">
+                <i class="fas fa-sign-out ml-2"></i> تسجيل الخروج
+            </button>
+        </div>
+
+        <!-- Main Content -->
+        <div class="flex-1 flex flex-col">
+            <div class="bg-white border-b border-gray-200 px-8 py-4 flex items-center justify-between">
+                <h2 class="text-2xl font-bold text-gray-800">إدارة الفئات</h2>
+                <button onclick="showAddCategoryModal()" class="px-6 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition">
+                    <i class="fas fa-plus ml-2"></i> إضافة فئة
+                </button>
+            </div>
+
+            <div class="flex-1 overflow-y-auto p-8">
+                <div class="bg-white rounded-lg shadow overflow-hidden">
+                    <table class="w-full">
+                        <thead class="bg-gray-100">
+                            <tr>
+                                <th class="px-6 py-4 text-right text-gray-700 font-bold">الفئة</th>
+                                <th class="px-6 py-4 text-right text-gray-700 font-bold">الوصف</th>
+                                <th class="px-6 py-4 text-right text-gray-700 font-bold">الإجراءات</th>
+                            </tr>
+                        </thead>
+                        <tbody id="categoriesTable" class="divide-y divide-gray-200">
+                            <!-- Categories will be loaded here -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Add Category Modal -->
+    <div id="addCategoryModal" class="hidden fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+        <div class="bg-white rounded-lg p-8 max-w-md w-full">
+            <h3 class="text-2xl font-bold text-gray-800 mb-4">إضافة فئة جديدة</h3>
+            <form onsubmit="addCategory(event)" class="space-y-4">
+                <div>
+                    <label class="block text-gray-700 font-bold mb-2">اسم الفئة</label>
+                    <input type="text" id="categoryName" required class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500">
+                </div>
+                <div>
+                    <label class="block text-gray-700 font-bold mb-2">الوصف</label>
+                    <textarea id="categoryDescription" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500" rows="3"></textarea>
+                </div>
+                <div class="flex gap-3">
+                    <button type="submit" class="flex-1 bg-purple-600 text-white py-2 rounded-lg hover:bg-purple-700 transition">
+                        حفظ
+                    </button>
+                    <button type="button" onclick="closeAddCategoryModal()" class="flex-1 bg-gray-300 text-gray-700 py-2 rounded-lg hover:bg-gray-400 transition">
+                        إلغاء
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        const API_URL = window.location.origin;
+        const token = localStorage.getItem('token');
+
+        if (!token) {
+            window.location.href = '/login.html';
+        }
+
+        async function loadCategories() {
+            try {
+                const response = await fetch(`${API_URL}/api/v1/Categories`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                const data = await response.json();
+                displayCategories(data.data || []);
+            } catch (error) {
+                console.error('Error loading categories:', error);
+            }
+        }
+
+        function displayCategories(categories) {
+            const tbody = document.getElementById('categoriesTable');
+            tbody.innerHTML = categories.map(cat => `
+                <tr>
+                    <td class="px-6 py-4 text-gray-800 font-bold">${cat.name}</td>
+                    <td class="px-6 py-4 text-gray-600">${cat.description || '-'}</td>
+                    <td class="px-6 py-4">
+                        <div class="flex gap-2">
+                            <button onclick="editCategory('${cat.id}')" class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition text-sm">
+                                تعديل
+                            </button>
+                            <button onclick="deleteCategory('${cat.id}')" class="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition text-sm">
+                                حذف
+                            </button>
+                        </div>
+                    </td>
+                </tr>
+            `).join('');
+        }
+
+        function showAddCategoryModal() {
+            document.getElementById('addCategoryModal').classList.remove('hidden');
+        }
+
+        function closeAddCategoryModal() {
+            document.getElementById('addCategoryModal').classList.add('hidden');
+        }
+
+        async function addCategory(event) {
+            event.preventDefault();
+            const name = document.getElementById('categoryName').value;
+            const description = document.getElementById('categoryDescription').value;
+
+            try {
+                await fetch(`${API_URL}/api/v1/Categories`, {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ name, description })
+                });
+                closeAddCategoryModal();
+                document.getElementById('categoryName').value = '';
+                document.getElementById('categoryDescription').value = '';
+                loadCategories();
+            } catch (error) {
+                alert('خطأ في إضافة الفئة');
+            }
+        }
+
+        function editCategory(id) {
+            alert('سيتم تطوير ميزة التعديل قريباً');
+        }
+
+        async function deleteCategory(id) {
+            if (!confirm('هل تريد حذف هذه الفئة؟')) return;
+            try {
+                await fetch(`${API_URL}/api/v1/Categories/${id}`, {
+                    method: 'DELETE',
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                loadCategories();
+            } catch (error) {
+                alert('خطأ في حذف الفئة');
+            }
+        }
+
+        function logout() {
+            localStorage.removeItem('token');
+            window.location.href = '/login.html';
+        }
+
+        loadCategories();
+    </script>
+</body>
+</html>

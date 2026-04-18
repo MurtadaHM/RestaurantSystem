@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>إدارة المنيو | نظام المطعم</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body class="bg-gray-50">
+    <div class="flex h-screen">
+        <!-- Sidebar -->
+        <div class="w-64 bg-gradient-to-b from-amber-900 to-amber-800 text-white p-6">
+            <div class="flex items-center gap-3 mb-8">
+                <i class="fas fa-utensils text-2xl text-yellow-300"></i>
+                <h1 class="text-xl font-bold">إدارة المنيو</h1>
+            </div>
+            <nav class="space-y-2">
+                <a href="#menu" class="flex items-center gap-3 px-4 py-3 rounded-lg bg-white/10">
+                    <i class="fas fa-list"></i> العناصر
+                </a>
+                <a href="#categories" class="flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-white/10">
+                    <i class="fas fa-tags"></i> الفئات
+                </a>
+            </nav>
+            <button onclick="logout()" class="w-full mt-auto text-left px-4 py-3 rounded-lg bg-red-500/20 hover:bg-red-500/30 transition">
+                <i class="fas fa-sign-out ml-2"></i> تسجيل الخروج
+            </button>
+        </div>
+
+        <!-- Main Content -->
+        <div class="flex-1 flex flex-col">
+            <div class="bg-white border-b border-gray-200 px-8 py-4 flex items-center justify-between">
+                <h2 class="text-2xl font-bold text-gray-800">إدارة عناصر المنيو</h2>
+                <button onclick="showAddItemModal()" class="px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition">
+                    <i class="fas fa-plus ml-2"></i> إضافة عنصر
+                </button>
+            </div>
+
+            <div class="flex-1 overflow-y-auto p-8">
+                <!-- Menu Items Grid -->
+                <div id="menuGrid" class="grid grid-cols-3 gap-6">
+                    <!-- Items will be loaded here -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Add Item Modal -->
+    <div id="addItemModal" class="hidden fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+        <div class="bg-white rounded-lg p-8 max-w-lg w-full">
+            <h3 class="text-2xl font-bold text-gray-800 mb-4">إضافة عنصر جديد</h3>
+            <form onsubmit="addMenuItem(event)" class="space-y-4">
+                <div>
+                    <label class="block text-gray-700 font-bold mb-2">الاسم</label>
+                    <input type="text" id="itemName" required class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500">
+                </div>
+                <div>
+                    <label class="block text-gray-700 font-bold mb-2">الوصف</label>
+                    <textarea id="itemDescription" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500" rows="3"></textarea>
+                </div>
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-gray-700 font-bold mb-2">السعر</label>
+                        <input type="number" id="itemPrice" required step="0.01" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500">
+                    </div>
+                    <div>
+                        <label class="block text-gray-700 font-bold mb-2">الفئة</label>
+                        <select id="itemCategory" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500">
+                            <option value="">اختر فئة</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="flex gap-3">
+                    <button type="submit" class="flex-1 bg-green-600 text-white py-2 rounded-lg hover:bg-green-700 transition">
+                        حفظ
+                    </button>
+                    <button type="button" onclick="closeAddItemModal()" class="flex-1 bg-gray-300 text-gray-700 py-2 rounded-lg hover:bg-gray-400 transition">
+                        إلغاء
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        const API_URL = window.location.origin;
+        const token = localStorage.getItem('token');
+
+        if (!token) {
+            window.location.href = '/login.html';
+        }
+
+        async function loadMenuItems() {
+            try {
+                const response = await fetch(`${API_URL}/api/v1/Menu`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                const data = await response.json();
+                displayMenuItems(data.data || []);
+            } catch (error) {
+                console.error('Error loading menu items:', error);
+            }
+        }
+
+        function displayMenuItems(items) {
+            const grid = document.getElementById('menuGrid');
+            grid.innerHTML = items.map(item => `
+                <div class="bg-white rounded-lg shadow overflow-hidden hover:shadow-lg transition">
+                    <div class="bg-gradient-to-r from-amber-500 to-orange-500 h-32 flex items-center justify-center">
+                        <i class="fas fa-utensils text-4xl text-white/40"></i>
+                    </div>
+                    <div class="p-4">
+                        <h3 class="font-bold text-gray-800 mb-2">${item.name}</h3>
+                        <p class="text-sm text-gray-600 mb-3">${item.description || ''}</p>
+                        <div class="flex items-center justify-between mb-4">
+                            <span class="text-2xl font-bold text-amber-600">${item.price} ر.س</span>
+                            <span class="px-3 py-1 bg-blue-100 text-blue-800 rounded-full text-xs font-bold">${item.category}</span>
+                        </div>
+                        <div class="flex gap-2">
+                            <button onclick="editMenuItem('${item.id}')" class="flex-1 bg-blue-600 text-white py-2 rounded-lg hover:bg-blue-700 transition text-sm">
+                                تعديل
+                            </button>
+                            <button onclick="deleteMenuItem('${item.id}')" class="flex-1 bg-red-600 text-white py-2 rounded-lg hover:bg-red-700 transition text-sm">
+                                حذف
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function showAddItemModal() {
+            document.getElementById('addItemModal').classList.remove('hidden');
+        }
+
+        function closeAddItemModal() {
+            document.getElementById('addItemModal').classList.add('hidden');
+        }
+
+        async function addMenuItem(event) {
+            event.preventDefault();
+            const name = document.getElementById('itemName').value;
+            const description = document.getElementById('itemDescription').value;
+            const price = parseFloat(document.getElementById('itemPrice').value);
+            const category = document.getElementById('itemCategory').value;
+
+            try {
+                await fetch(`${API_URL}/api/v1/Menu`, {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ name, description, price, category, isAvailable: true })
+                });
+                closeAddItemModal();
+                document.getElementById('itemName').value = '';
+                document.getElementById('itemDescription').value = '';
+                document.getElementById('itemPrice').value = '';
+                document.getElementById('itemCategory').value = '';
+                loadMenuItems();
+            } catch (error) {
+                alert('خطأ في إضافة العنصر');
+            }
+        }
+
+        function editMenuItem(id) {
+            alert('سيتم تطوير ميزة التعديل قريباً');
+        }
+
+        async function deleteMenuItem(id) {
+            if (!confirm('هل تريد حذف هذا العنصر؟')) return;
+            try {
+                await fetch(`${API_URL}/api/v1/Menu/${id}`, {
+                    method: 'DELETE',
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                loadMenuItems();
+            } catch (error) {
+                alert('خطأ في حذف العنصر');
+            }
+        }
+
+        function logout() {
+            localStorage.removeItem('token');
+            window.location.href = '/login.html';
+        }
+
+        loadMenuItems();
+    </script>
+</body>
+</html>

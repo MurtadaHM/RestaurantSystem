@@ -1,0 +1,228 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>إدارة الطلب | نظام المطعم</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body class="bg-gray-50">
+    <div class="flex h-screen">
+        <!-- Sidebar -->
+        <div class="w-64 bg-gradient-to-b from-amber-900 to-amber-800 text-white p-6">
+            <div class="flex items-center gap-3 mb-8">
+                <i class="fas fa-shopping-cart text-2xl text-yellow-300"></i>
+                <h1 class="text-xl font-bold">إدارة الطلب</h1>
+            </div>
+            <button onclick="logout()" class="w-full mt-auto text-left px-4 py-3 rounded-lg bg-red-500/20 hover:bg-red-500/30 transition">
+                <i class="fas fa-sign-out ml-2"></i> تسجيل الخروج
+            </button>
+        </div>
+
+        <!-- Main Content -->
+        <div class="flex-1 flex flex-col">
+            <div class="bg-white border-b border-gray-200 px-8 py-4">
+                <h2 class="text-2xl font-bold text-gray-800">إنشاء طلب جديد</h2>
+                <p class="text-gray-600 text-sm mt-1">اختر الطاولة والعناصر لإنشاء طلب</p>
+            </div>
+
+            <div class="flex-1 overflow-y-auto p-8">
+                <div class="grid grid-cols-3 gap-8">
+                    <!-- Left: Table & Menu Selection -->
+                    <div class="col-span-2 space-y-8">
+                        <!-- Table Selection -->
+                        <div class="bg-white rounded-lg shadow p-6">
+                            <h3 class="text-lg font-bold text-gray-800 mb-4">اختر الطاولة</h3>
+                            <div id="tablesGrid" class="grid grid-cols-4 gap-3">
+                                <!-- Tables will be loaded here -->
+                            </div>
+                        </div>
+
+                        <!-- Menu Items -->
+                        <div class="bg-white rounded-lg shadow p-6">
+                            <h3 class="text-lg font-bold text-gray-800 mb-4">عناصر المنيو</h3>
+                            <div id="menuGrid" class="grid grid-cols-3 gap-4">
+                                <!-- Menu items will be loaded here -->
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Right: Order Summary -->
+                    <div class="bg-white rounded-lg shadow p-6 h-fit sticky top-8">
+                        <h3 class="text-lg font-bold text-gray-800 mb-4">ملخص الطلب</h3>
+                        <div id="orderSummary" class="space-y-3 mb-6 max-h-96 overflow-y-auto">
+                            <!-- Order items will be displayed here -->
+                        </div>
+                        <div class="border-t border-gray-200 pt-4">
+                            <div class="flex justify-between mb-2">
+                                <span class="text-gray-600">المجموع:</span>
+                                <span id="totalAmount" class="font-bold text-lg">0 ر.س</span>
+                            </div>
+                            <button onclick="submitOrder()" class="w-full bg-green-600 text-white py-3 rounded-lg hover:bg-green-700 transition font-bold">
+                                <i class="fas fa-check ml-2"></i> تأكيد الطلب
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const API_URL = window.location.origin;
+        const token = localStorage.getItem('token');
+        let selectedTableId = null;
+        let orderItems = [];
+
+        if (!token) {
+            window.location.href = '/login.html';
+        }
+
+        async function loadTables() {
+            try {
+                const response = await fetch(`${API_URL}/api/v1/Tables`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                const data = await response.json();
+                displayTables(data.data || []);
+            } catch (error) {
+                console.error('Error loading tables:', error);
+            }
+        }
+
+        function displayTables(tables) {
+            const grid = document.getElementById('tablesGrid');
+            grid.innerHTML = tables.map(table => `
+                <button onclick="selectTable('${table.id}', '${table.name}')" 
+                    class="p-4 rounded-lg border-2 transition ${
+                        selectedTableId === table.id 
+                            ? 'border-green-600 bg-green-50' 
+                            : 'border-gray-300 hover:border-gray-400'
+                    } ${table.isAvailable ? '' : 'opacity-50 cursor-not-allowed'}">
+                    <i class="fas fa-chair text-2xl mb-2"></i>
+                    <p class="font-bold">${table.name}</p>
+                    <p class="text-xs text-gray-600">${table.capacity} أشخاص</p>
+                </button>
+            `).join('');
+        }
+
+        async function loadMenuItems() {
+            try {
+                const response = await fetch(`${API_URL}/api/v1/Menu`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                const data = await response.json();
+                displayMenuItems(data.data || []);
+            } catch (error) {
+                console.error('Error loading menu:', error);
+            }
+        }
+
+        function displayMenuItems(items) {
+            const grid = document.getElementById('menuGrid');
+            grid.innerHTML = items.map(item => `
+                <div class="bg-gradient-to-br from-amber-50 to-orange-50 rounded-lg p-4 border border-amber-200 hover:shadow-lg transition cursor-pointer"
+                    onclick="addToOrder('${item.id}', '${item.name}', ${item.price})">
+                    <i class="fas fa-utensils text-3xl text-amber-600/40 mb-2"></i>
+                    <p class="font-bold text-gray-800">${item.name}</p>
+                    <p class="text-sm text-gray-600 mb-2">${item.category}</p>
+                    <p class="text-lg font-bold text-amber-600">${item.price} ر.س</p>
+                </div>
+            `).join('');
+        }
+
+        function selectTable(tableId, tableName) {
+            selectedTableId = tableId;
+            loadTables();
+        }
+
+        function addToOrder(itemId, itemName, price) {
+            if (!selectedTableId) {
+                alert('الرجاء اختيار طاولة أولاً');
+                return;
+            }
+
+            const existingItem = orderItems.find(item => item.itemId === itemId);
+            if (existingItem) {
+                existingItem.quantity++;
+            } else {
+                orderItems.push({ itemId, itemName, price, quantity: 1 });
+            }
+            updateOrderSummary();
+        }
+
+        function updateOrderSummary() {
+            const summary = document.getElementById('orderSummary');
+            const totalAmount = document.getElementById('totalAmount');
+
+            summary.innerHTML = orderItems.map((item, index) => `
+                <div class="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                    <div>
+                        <p class="font-bold text-gray-800">${item.itemName}</p>
+                        <p class="text-sm text-gray-600">${item.quantity} × ${item.price} ر.س</p>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <button onclick="removeFromOrder(${index})" class="text-red-600 hover:text-red-800">
+                            <i class="fas fa-trash"></i>
+                        </button>
+                    </div>
+                </div>
+            `).join('');
+
+            const total = orderItems.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+            totalAmount.textContent = total.toFixed(2) + ' ر.س';
+        }
+
+        function removeFromOrder(index) {
+            orderItems.splice(index, 1);
+            updateOrderSummary();
+        }
+
+        async function submitOrder() {
+            if (!selectedTableId || orderItems.length === 0) {
+                alert('الرجاء اختيار طاولة وعناصر');
+                return;
+            }
+
+            try {
+                const items = orderItems.map(item => ({
+                    menuItemId: item.itemId,
+                    quantity: item.quantity,
+                    unitPrice: item.price
+                }));
+
+                const response = await fetch(`${API_URL}/api/v1/Orders`, {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ tableId: selectedTableId, items })
+                });
+
+                if (response.ok) {
+                    alert('تم إنشاء الطلب بنجاح!');
+                    orderItems = [];
+                    selectedTableId = null;
+                    updateOrderSummary();
+                    loadTables();
+                } else {
+                    alert('خطأ في إنشاء الطلب');
+                }
+            } catch (error) {
+                alert('خطأ: ' + error.message);
+            }
+        }
+
+        function logout() {
+            localStorage.removeItem('token');
+            window.location.href = '/login.html';
+        }
+
+        // Initialize
+        loadTables();
+        loadMenuItems();
+    </script>
+</body>
+</html>

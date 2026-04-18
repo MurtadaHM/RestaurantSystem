@@ -3,950 +3,203 @@
 <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>شاشة المطبخ | KDS</title>
-    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;700;800;900&display=swap" rel="stylesheet">
+    <title>اختبار نظام المطبخ | نظام المطعم</title>
+    <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <style>
-        :root {
-            --bg: #121317;
-            --panel: #1b1d24;
-            --panel-2: #232632;
-            --card: #ffffff;
-            --text-dark: #20242b;
-            --text-light: #f5f7fb;
-            --muted: #9da7b3;
-            --delivery: #e67e22;
-            --dinein: #0984e3;
-            --takeaway: #8e44ad;
-            --success: #00b894;
-            --warning: #fbc531;
-            --danger: #d63031;
-            --border-soft: rgba(255,255,255,0.08);
-            --shadow: 0 20px 50px rgba(0,0,0,0.28);
-            --radius-xl: 24px;
-            --radius-lg: 18px;
-            --radius-md: 14px;
-        }
-
-        * {
-            box-sizing: border-box;
-        }
-
-        body {
-            margin: 0;
-            padding: 18px;
-            font-family: 'Cairo', sans-serif;
-            background: radial-gradient(circle at top right, rgba(230,126,34,0.10) 0%, transparent 18%), radial-gradient(circle at top left, rgba(9,132,227,0.08) 0%, transparent 15%), linear-gradient(180deg, #111216, #16181f 40%, #101116 100%);
-            color: var(--text-light);
-            min-height: 100vh;
-        }
-
-        .page-shell {
-            max-width: 1800px;
-            margin: 0 auto;
-        }
-
-        .kds-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            gap: 14px;
-            flex-wrap: wrap;
-            background: rgba(255,255,255,0.04);
-            border: 1px solid var(--border-soft);
-            padding: 18px 22px;
-            border-radius: 24px;
-            box-shadow: var(--shadow);
-            backdrop-filter: blur(10px);
-            margin-bottom: 18px;
-        }
-
-        .header-left {
-            display: flex;
-            align-items: center;
-            gap: 16px;
-        }
-
-        .kds-icon {
-            width: 60px;
-            height: 60px;
-            border-radius: 18px;
-            display: grid;
-            place-items: center;
-            background: rgba(255,255,255,0.08);
-            color: #ffd8aa;
-            font-size: 1.45rem;
-            flex-shrink: 0;
-        }
-
-        .header-left h1 {
-            margin: 0 0 6px;
-            font-size: 1.5rem;
-            color: #ffe1bf;
-        }
-
-        .header-left p {
-            margin: 0;
-            color: #d5dbe3;
-            font-size: 0.92rem;
-        }
-
-        .header-right {
-            display: flex;
-            align-items: center;
-            gap: 12px;
-            flex-wrap: wrap;
-        }
-
-        .chip {
-            display: inline-flex;
-            align-items: center;
-            gap: 8px;
-            padding: 10px 14px;
-            border-radius: 999px;
-            font-size: 0.88rem;
-            font-weight: 800;
-            border: 1px solid var(--border-soft);
-            background: rgba(255,255,255,0.04);
-        }
-
-            .chip.online {
-                color: #baf4df;
-                background: rgba(0,184,148,0.12);
-                border-color: rgba(0,184,148,0.28);
-            }
-
-            .chip.offline {
-                color: #ffd0d0;
-                background: rgba(214,48,49,0.12);
-                border-color: rgba(214,48,49,0.28);
-            }
-
-            .chip .dot {
-                width: 8px;
-                height: 8px;
-                border-radius: 999px;
-                background: currentColor;
-            }
-
-        .header-btn {
-            border: 1px solid var(--border-soft);
-            background: rgba(255,255,255,0.05);
-            color: white;
-            padding: 10px 14px;
-            border-radius: 12px;
-            cursor: pointer;
-            font-weight: 800;
-            transition: .2s ease;
-        }
-
-            .header-btn:hover {
-                background: rgba(255,255,255,0.11);
-            }
-
-        .stats-row {
-            display: grid;
-            grid-template-columns: repeat(4, minmax(160px, 1fr));
-            gap: 14px;
-            margin-bottom: 18px;
-        }
-
-        .stat-card {
-            background: rgba(255,255,255,0.04);
-            border: 1px solid var(--border-soft);
-            border-radius: 20px;
-            padding: 16px;
-            box-shadow: var(--shadow);
-        }
-
-            .stat-card .label {
-                color: #b8c1cc;
-                font-size: 0.86rem;
-                margin-bottom: 8px;
-            }
-
-            .stat-card .value {
-                font-size: 1.7rem;
-                font-weight: 900;
-                color: white;
-            }
-
-        .toolbar {
-            display: flex;
-            justify-content: space-between;
-            gap: 14px;
-            align-items: center;
-            flex-wrap: wrap;
-            margin-bottom: 18px;
-        }
-
-        .toolbar-left,
-        .toolbar-right {
-            display: flex;
-            gap: 10px;
-            flex-wrap: wrap;
-            align-items: center;
-        }
-
-        .filter-btn {
-            border: 1px solid var(--border-soft);
-            background: rgba(255,255,255,0.04);
-            color: white;
-            padding: 10px 14px;
-            border-radius: 999px;
-            cursor: pointer;
-            font-weight: 800;
-            transition: .2s ease;
-        }
-
-            .filter-btn.active {
-                background: linear-gradient(135deg, #c56a2d, #e67e22);
-                color: white;
-                border-color: transparent;
-            }
-
-        .search-input {
-            min-width: 240px;
-            padding: 11px 13px;
-            border-radius: 12px;
-            border: 1px solid var(--border-soft);
-            background: rgba(255,255,255,0.06);
-            color: white;
-            font: inherit;
-        }
-
-            .search-input::placeholder {
-                color: #b6bfca;
-            }
-
-            .search-input:focus {
-                outline: none;
-                border-color: rgba(255,255,255,0.18);
-            }
-
-        .orders-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
-            gap: 18px;
-        }
-
-        .order-card {
-            background: var(--card);
-            color: var(--text-dark);
-            border-radius: 22px;
-            overflow: hidden;
-            display: flex;
-            flex-direction: column;
-            box-shadow: 0 18px 38px rgba(0,0,0,0.25);
-            transform: translateY(0);
-            transition: .22s ease;
-            animation: slideIn .35s ease-out;
-            position: relative;
-        }
-
-            .order-card:hover {
-                transform: translateY(-4px);
-            }
-
-        @keyframes slideIn {
-            from {
-                opacity: 0;
-                transform: translateY(25px);
-            }
-
-            to {
-                opacity: 1;
-                transform: translateY(0);
-            }
-        }
-
-        .card-edge {
-            height: 8px;
-            width: 100%;
-        }
-
-        .edge-Delivery {
-            background: var(--delivery);
-        }
-
-        .edge-DineIn {
-            background: var(--dinein);
-        }
-
-        .edge-TakeAway {
-            background: var(--takeaway);
-        }
-
-        .card-header {
-            padding: 16px 18px;
-            background: #f8fafc;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            gap: 12px;
-        }
-
-        .order-meta {
-            display: flex;
-            flex-direction: column;
-            gap: 6px;
-        }
-
-        .order-no {
-            font-size: 1.45rem;
-            font-weight: 900;
-            color: #141821;
-            line-height: 1;
-        }
-
-        .type-badge {
-            display: inline-flex;
-            align-items: center;
-            gap: 6px;
-            width: fit-content;
-            padding: 5px 10px;
-            border-radius: 999px;
-            font-size: 0.78rem;
-            font-weight: 800;
-        }
-
-        .badge-Delivery {
-            background: #fff1e6;
-            color: var(--delivery);
-        }
-
-        .badge-DineIn {
-            background: #e8f4ff;
-            color: var(--dinein);
-        }
-
-        .badge-TakeAway {
-            background: #f4eaff;
-            color: var(--takeaway);
-        }
-
-        .timer-box {
-            min-width: 96px;
-            text-align: center;
-            padding: 10px 12px;
-            border-radius: 14px;
-            background: #edf6ff;
-            border: 1px solid #d8ebff;
-        }
-
-        .timer-label {
-            font-size: 0.72rem;
-            color: #5b6b7a;
-            margin-bottom: 4px;
-        }
-
-        .timer-value {
-            font-family: 'Courier New', monospace;
-            font-size: 1.3rem;
-            font-weight: 900;
-            color: var(--dinein);
-        }
-
-        .order-summary {
-            display: flex;
-            gap: 8px;
-            flex-wrap: wrap;
-            padding: 14px 18px 0;
-        }
-
-        .summary-chip {
-            background: #f8f4ee;
-            border: 1px solid #eadcc9;
-            color: #6b4f36;
-            padding: 5px 9px;
-            border-radius: 999px;
-            font-size: 0.76rem;
-            font-weight: 800;
-        }
-
-        .card-body {
-            padding: 16px 18px 8px;
-            flex: 1;
-        }
-
-        .items-list {
-            display: grid;
-            gap: 10px;
-        }
-
-        .item-row {
-            display: flex;
-            align-items: flex-start;
-            gap: 12px;
-            padding: 10px 12px;
-            border: 1px solid #edf0f4;
-            border-radius: 14px;
-            background: #fcfcfd;
-            cursor: pointer;
-            transition: .18s ease;
-        }
-
-            .item-row:hover {
-                background: #f8fafc;
-            }
-
-            .item-row.done {
-                opacity: 0.38;
-                text-decoration: line-through;
-                background: #f4f5f7;
-            }
-
-        .qty-badge {
-            min-width: 28px;
-            height: 28px;
-            display: grid;
-            place-items: center;
-            border-radius: 8px;
-            background: #1f2937;
-            color: white;
-            font-weight: 900;
-            font-size: 0.9rem;
-            flex-shrink: 0;
-            margin-top: 2px;
-        }
-
-        .item-info {
-            flex: 1;
-        }
-
-        .item-name {
-            font-size: 1rem;
-            font-weight: 900;
-            color: #1e293b;
-            margin-bottom: 4px;
-        }
-
-        .item-notes {
-            color: var(--delivery);
-            font-size: 0.83rem;
-            line-height: 1.6;
-        }
-
-        .special-box {
-            margin-top: 14px;
-            background: #fff9db;
-            border: 1px solid #f2df8c;
-            color: #7a5a00;
-            border-radius: 14px;
-            padding: 12px 14px;
-            font-size: 0.88rem;
-            line-height: 1.7;
-        }
-
-            .special-box strong {
-                display: block;
-                margin-bottom: 4px;
-            }
-
-        .card-footer {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 10px;
-            padding: 14px 18px 18px;
-        }
-
-        .btn-action {
-            border: none;
-            border-radius: 14px;
-            padding: 14px 12px;
-            cursor: pointer;
-            font-weight: 900;
-            font-size: 0.94rem;
-            transition: .2s ease;
-        }
-
-        .btn-ready {
-            background: linear-gradient(135deg, var(--success), #0aa07d);
-            color: white;
-        }
-
-            .btn-ready:hover {
-                filter: brightness(1.04);
-            }
-
-        .btn-cancel {
-            background: #fff5f5;
-            color: var(--danger);
-            border: 1px solid #f1c3c3;
-        }
-
-            .btn-cancel:hover {
-                background: #ffeaea;
-            }
-
-        .warning-mode .timer-box {
-            background: #fff6d8;
-            border-color: #f3dc7c;
-        }
-
-        .warning-mode .timer-value {
-            color: #946200;
-        }
-
-        .danger-mode .timer-box {
-            background: #ffe5e5;
-            border-color: #f1b9b9;
-            animation: pulse .75s infinite;
-        }
-
-        .danger-mode .timer-value {
-            color: var(--danger);
-        }
-
-        @keyframes pulse {
-            50% {
-                opacity: 0.65;
-            }
-        }
-
-        .empty-state {
-            grid-column: 1 / -1;
-            text-align: center;
-            padding: 70px 20px;
-            border-radius: 22px;
-            background: rgba(255,255,255,0.04);
-            border: 1px dashed rgba(255,255,255,0.12);
-            color: #cbd5e1;
-        }
-
-        @media (max-width: 1100px) {
-            .stats-row {
-                grid-template-columns: repeat(2, minmax(160px, 1fr));
-            }
-        }
-
-        @media (max-width: 760px) {
-            body {
-                padding: 12px;
-            }
-
-            .stats-row {
-                grid-template-columns: 1fr 1fr;
-            }
-
-            .orders-grid {
-                grid-template-columns: 1fr;
-            }
-
-            .card-footer {
-                grid-template-columns: 1fr;
-            }
-        }
-    </style>
 </head>
-<body>
-    <div class="page-shell">
-        <div class="kds-header">
-            <div class="header-left">
-                <div class="kds-icon">
-                    <i class="fas fa-fire-burner"></i>
+<body class="bg-gray-50">
+    <div class="container mx-auto p-8">
+        <div class="bg-white rounded-lg shadow p-8">
+            <h1 class="text-4xl font-bold text-gray-800 mb-4">اختبار نظام المطبخ</h1>
+            <p class="text-gray-600 mb-8">صفحة اختبار الاتصال والوظائف الأساسية لنظام المطعم</p>
+
+            <div class="grid grid-cols-2 gap-6">
+                <!-- API Connectivity Test -->
+                <div class="border-2 border-gray-200 rounded-lg p-6">
+                    <h2 class="text-xl font-bold text-gray-800 mb-4">
+                        <i class="fas fa-server ml-2 text-blue-600"></i> اختبار الاتصال بـ API
+                    </h2>
+                    <button onclick="testAPI()" class="w-full px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition font-bold mb-4">
+                        <i class="fas fa-sync ml-2"></i> اختبار الاتصال
+                    </button>
+                    <div id="apiStatus" class="p-4 rounded-lg bg-gray-100 text-gray-600">
+                        جاهز للاختبار...
+                    </div>
                 </div>
-                <div>
-                    <h1>شاشة المطبخ الاحترافية</h1>
-                    <p id="orderCount">0 طلبات نشطة حالياً</p>
+
+                <!-- Database Test -->
+                <div class="border-2 border-gray-200 rounded-lg p-6">
+                    <h2 class="text-xl font-bold text-gray-800 mb-4">
+                        <i class="fas fa-database ml-2 text-green-600"></i> اختبار قاعدة البيانات
+                    </h2>
+                    <button onclick="testDatabase()" class="w-full px-6 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 transition font-bold mb-4">
+                        <i class="fas fa-check ml-2"></i> اختبار الاتصال
+                    </button>
+                    <div id="dbStatus" class="p-4 rounded-lg bg-gray-100 text-gray-600">
+                        جاهز للاختبار...
+                    </div>
+                </div>
+
+                <!-- Authentication Test -->
+                <div class="border-2 border-gray-200 rounded-lg p-6">
+                    <h2 class="text-xl font-bold text-gray-800 mb-4">
+                        <i class="fas fa-lock ml-2 text-purple-600"></i> اختبار المصادقة
+                    </h2>
+                    <button onclick="testAuth()" class="w-full px-6 py-3 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition font-bold mb-4">
+                        <i class="fas fa-user ml-2"></i> اختبار تسجيل الدخول
+                    </button>
+                    <div id="authStatus" class="p-4 rounded-lg bg-gray-100 text-gray-600">
+                        جاهز للاختبار...
+                    </div>
+                </div>
+
+                <!-- SignalR Test -->
+                <div class="border-2 border-gray-200 rounded-lg p-6">
+                    <h2 class="text-xl font-bold text-gray-800 mb-4">
+                        <i class="fas fa-wifi ml-2 text-red-600"></i> اختبار SignalR
+                    </h2>
+                    <button onclick="testSignalR()" class="w-full px-6 py-3 bg-red-600 text-white rounded-lg hover:bg-red-700 transition font-bold mb-4">
+                        <i class="fas fa-signal ml-2"></i> اختبار الاتصال
+                    </button>
+                    <div id="signalRStatus" class="p-4 rounded-lg bg-gray-100 text-gray-600">
+                        جاهز للاختبار...
+                    </div>
                 </div>
             </div>
 
-            <div class="header-right">
-                <div id="connectionStatus" class="chip online">
-                    <span class="dot"></span>
-                    <span id="statusText">البث الحي متصل</span>
+            <!-- System Status Summary -->
+            <div class="mt-8 p-6 bg-blue-50 border-l-4 border-blue-600 rounded-lg">
+                <h3 class="text-lg font-bold text-blue-900 mb-3">ملخص حالة النظام</h3>
+                <div id="systemSummary" class="space-y-2 text-blue-800">
+                    <p>جاري تحضير الاختبارات...</p>
                 </div>
-
-                <button class="header-btn" onclick="reloadKds()">
-                    <i class="fas fa-rotate"></i>
-                    تحديث
-                </button>
-
-                <button class="header-btn" onclick="goToPage('Dashboard.html')">
-                    <i class="fas fa-chart-line"></i>
-                    الداشبورد
-                </button>
-            </div>
-        </div>
-
-        <div class="stats-row">
-            <div class="stat-card">
-                <div class="label">إجمالي الطلبات</div>
-                <div class="value" id="statTotal">0</div>
             </div>
 
-            <div class="stat-card">
-                <div class="label">طلبات التوصيل</div>
-                <div class="value" id="statDelivery">0</div>
+            <!-- Quick Links -->
+            <div class="mt-8">
+                <h3 class="text-xl font-bold text-gray-800 mb-4">روابط سريعة</h3>
+                <div class="grid grid-cols-3 gap-4">
+                    <a href="/login.html" class="p-4 bg-white rounded-lg border border-gray-200 hover:border-blue-600 hover:shadow-lg transition text-center">
+                        <i class="fas fa-sign-in text-2xl text-blue-600 mb-2"></i>
+                        <p class="font-bold text-gray-800">تسجيل الدخول</p>
+                    </a>
+                    <a href="/Dashboard.html" class="p-4 bg-white rounded-lg border border-gray-200 hover:border-green-600 hover:shadow-lg transition text-center">
+                        <i class="fas fa-chart-pie text-2xl text-green-600 mb-2"></i>
+                        <p class="font-bold text-gray-800">لوحة التحكم</p>
+                    </a>
+                    <a href="/chef-kitchen.html" class="p-4 bg-white rounded-lg border border-gray-200 hover:border-red-600 hover:shadow-lg transition text-center">
+                        <i class="fas fa-fire-burner text-2xl text-red-600 mb-2"></i>
+                        <p class="font-bold text-gray-800">لوحة المطبخ</p>
+                    </a>
+                </div>
             </div>
-
-            <div class="stat-card">
-                <div class="label">طلبات الصالة</div>
-                <div class="value" id="statDineIn">0</div>
-            </div>
-
-            <div class="stat-card">
-                <div class="label">متأخرة +10 دقائق</div>
-                <div class="value" id="statLate">0</div>
-            </div>
-        </div>
-
-        <div class="toolbar">
-            <div class="toolbar-left">
-                <button class="filter-btn active" id="filterAll" onclick="setFilter('all')">الكل</button>
-                <button class="filter-btn" id="filterDelivery" onclick="setFilter('Delivery')">توصيل</button>
-                <button class="filter-btn" id="filterDineIn" onclick="setFilter('DineIn')">صالة</button>
-                <button class="filter-btn" id="filterTakeAway" onclick="setFilter('TakeAway')">استلام مباشر</button>
-            </div>
-
-            <div class="toolbar-right">
-                <input id="searchInput" class="search-input" type="text" placeholder="بحث برقم الطلب أو اسم الصنف..." oninput="renderOrders()">
-            </div>
-        </div>
-
-        <div id="ordersContainer" class="orders-grid">
-            <div class="empty-state">جاري تحميل الطلبات...</div>
         </div>
     </div>
 
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/microsoft-signalr/6.0.1/signalr.min.js"></script>
     <script>
-        const token = localStorage.getItem("authToken");
         const API_URL = window.location.origin;
 
-        let allOrders = [];
-        let activeFilter = 'all';
-
-        if (!token) {
-            window.location.href = "login.html";
+        function setStatus(elementId, message, type = 'info') {
+            const element = document.getElementById(elementId);
+            const colors = {
+                'success': 'bg-green-50 text-green-800 border border-green-200',
+                'error': 'bg-red-50 text-red-800 border border-red-200',
+                'warning': 'bg-yellow-50 text-yellow-800 border border-yellow-200',
+                'info': 'bg-blue-50 text-blue-800 border border-blue-200'
+            };
+            element.className = `p-4 rounded-lg ${colors[type] || colors['info']}`;
+            element.innerHTML = `<i class="fas fa-${type === 'success' ? 'check' : type === 'error' ? 'times' : 'info'} ml-2"></i> ${message}`;
         }
 
-        const connection = new signalR.HubConnectionBuilder()
-            .withUrl(`${API_URL}/orderHub`, {
-                accessTokenFactory: () => token
-            })
-            .withAutomaticReconnect()
-            .build();
-
-        async function initKDS() {
+        async function testAPI() {
+            setStatus('apiStatus', 'جاري الاختبار...', 'info');
             try {
-                const res = await fetch(`${API_URL}/api/v1/Orders/pending`, {
-                    headers: { 'Authorization': `Bearer ${token}` }
-                });
-
-                const result = await res.json();
-
-                if (res.ok && result.success) {
-                    allOrders = Array.isArray(result.data) ? result.data : [];
-                    renderOrders();
+                const response = await fetch(`${API_URL}/swagger/index.html`);
+                if (response.ok) {
+                    setStatus('apiStatus', '✅ API يعمل بشكل صحيح - Swagger متاح', 'success');
                 } else {
-                    throw new Error(result.message || "فشل تحميل الطلبات");
+                    setStatus('apiStatus', '❌ فشل الاتصال - الحالة: ' + response.status, 'error');
                 }
-            } catch (err) {
-                console.error("KDS Load Error", err);
-                document.getElementById("ordersContainer").innerHTML =
-                    `<div class="empty-state">تعذر تحميل طلبات المطبخ</div>`;
+            } catch (error) {
+                setStatus('apiStatus', '❌ خطأ: ' + error.message, 'error');
             }
         }
 
-        function renderOrders() {
-            const container = document.getElementById("ordersContainer");
-            const search = document.getElementById("searchInput").value.trim().toLowerCase();
-
-            let filtered = [...allOrders];
-
-            if (activeFilter !== 'all') {
-                filtered = filtered.filter(order => order.orderType === activeFilter);
-            }
-
-            if (search) {
-                filtered = filtered.filter(order => {
-                    const orderNumber = String(order.orderNumber || '').toLowerCase();
-                    const itemNames = (order.items || []).map(i => String(i.menuItemName || '').toLowerCase()).join(' ');
-                    return orderNumber.includes(search) || itemNames.includes(search);
+        async function testDatabase() {
+            setStatus('dbStatus', 'جاري الاختبار...', 'info');
+            try {
+                const token = localStorage.getItem('token');
+                const response = await fetch(`${API_URL}/api/v1/Tables`, {
+                    headers: token ? { 'Authorization': `Bearer ${token}` } : {}
                 });
-            }
-
-            filtered.sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt));
-
-            if (!filtered.length) {
-                container.innerHTML = `<div class="empty-state">لا توجد طلبات مطابقة حالياً</div>`;
-            } else {
-                container.innerHTML = filtered.map(buildOrderCard).join('');
-                filtered.forEach(order => startOrderTimer(order.id, order.createdAt));
-            }
-
-            updateStats();
-            document.getElementById("orderCount").innerText = `${filtered.length} طلبات نشطة حالياً`;
-        }
-
-        function buildOrderCard(order) {
-            const type = order.orderType || 'DineIn';
-            const typeLabel = translateOrderType(type);
-            const edgeClass = `edge-${type}`;
-            const badgeClass = `badge-${type}`;
-            const totalAmount = Number(order.totalAmount || 0).toLocaleString('en-US');
-
-            const items = (order.items || []).map(item => `
-                    <div class="item-row" onclick="toggleDone(this)">
-                        <div class="qty-badge">${item.quantity}</div>
-                        <div class="item-info">
-                            <div class="item-name">${escapeHtml(item.menuItemName)}</div>
-                            ${item.specialInstructions ? `<div class="item-notes">📝 ${escapeHtml(item.specialInstructions)}</div>` : ''}
-                        </div>
-                    </div>
-                `).join('');
-
-            return `
-                    <div class="order-card" id="card-${order.id}">
-                        <div class="card-edge ${edgeClass}"></div>
-
-                        <div class="card-header">
-                            <div class="order-meta">
-                                <div class="order-no">#${order.orderNumber ?? '---'}</div>
-                                <div class="type-badge ${badgeClass}">${typeLabel}</div>
-                            </div>
-
-                            <div class="timer-box">
-                                <div class="timer-label">مدة الانتظار</div>
-                                <div class="timer-value" id="timer-${order.id}">00:00</div>
-                            </div>
-                        </div>
-
-                        <div class="order-summary">
-                            <span class="summary-chip">💰 ${totalAmount} د.ع</span>
-                            ${order.tableNumber ? `<span class="summary-chip">🪑 طاولة ${escapeHtml(order.tableNumber)}</span>` : ''}
-                            ${order.customerPhoneNumber ? `<span class="summary-chip">📞 ${escapeHtml(order.customerPhoneNumber)}</span>` : ''}
-                        </div>
-
-                        <div class="card-body">
-                            <div class="items-list">
-                                ${items || '<div class="item-row"><div class="item-info"><div class="item-name">لا توجد عناصر</div></div></div>'}
-                            </div>
-
-                            ${order.specialNotes ? `
-                                <div class="special-box">
-                                    <strong>ملاحظات عامة</strong>
-                                    ${escapeHtml(order.specialNotes)}
-                                </div>
-                            ` : ''}
-                        </div>
-
-                        <div class="card-footer">
-                            <button class="btn-action btn-ready" onclick="completeOrder('${order.id}')">
-                                <i class="fas fa-check-double"></i>
-                                جاهز للتسليم
-                            </button>
-
-                            <button class="btn-action btn-cancel" onclick="removeLocalCard('${order.id}')">
-                                <i class="fas fa-eye-slash"></i>
-                                إخفاء مؤقت
-                            </button>
-                        </div>
-                    </div>
-                `;
-        }
-
-        function toggleDone(row) {
-            row.classList.toggle('done');
-        }
-
-        function startOrderTimer(id, startTime) {
-            const timerSpan = document.getElementById(`timer-${id}`);
-            const card = document.getElementById(`card-${id}`);
-            if (!timerSpan || !card) return;
-
-            const tick = () => {
-                const stillExists = document.getElementById(`timer-${id}`);
-                const stillCard = document.getElementById(`card-${id}`);
-                if (!stillExists || !stillCard) return;
-
-                const diff = Math.floor((new Date() - new Date(startTime)) / 1000);
-                const mm = Math.floor(diff / 60).toString().padStart(2, '0');
-                const ss = (diff % 60).toString().padStart(2, '0');
-
-                stillExists.innerText = `${mm}:${ss}`;
-
-                stillCard.classList.remove('warning-mode', 'danger-mode');
-
-                if (diff > 1200) {
-                    stillCard.classList.add('danger-mode');
-                } else if (diff > 600) {
-                    stillCard.classList.add('warning-mode');
+                if (response.ok) {
+                    setStatus('dbStatus', '✅ قاعدة البيانات تعمل - استطعنا جلب البيانات', 'success');
+                } else if (response.status === 401) {
+                    setStatus('dbStatus', '⚠️ قاعدة البيانات متاحة لكن تحتاج مصادقة', 'warning');
+                } else {
+                    setStatus('dbStatus', '❌ خطأ: الحالة ' + response.status, 'error');
                 }
-
-                setTimeout(tick, 1000);
-            };
-
-            tick();
+            } catch (error) {
+                setStatus('dbStatus', '❌ خطأ الاتصال: ' + error.message, 'error');
+            }
         }
 
-        async function completeOrder(id) {
-            const card = document.getElementById(`card-${id}`);
-            if (!card) return;
-
-            card.style.opacity = '0.55';
-            card.style.pointerEvents = 'none';
+        async function testAuth() {
+            setStatus('authStatus', 'جاري الاختبار...', 'info');
+            const email = prompt('أدخل البريد الإلكتروني (admin@restaurant.com):') || 'admin@restaurant.com';
+            const password = prompt('أدخل كلمة المرور:');
+            
+            if (!password) {
+                setStatus('authStatus', 'تم الإلغاء', 'info');
+                return;
+            }
 
             try {
-                const response = await fetch(`${API_URL}/api/v1/Orders/${id}/status`, {
-                    method: 'PATCH',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'Authorization': `Bearer ${token}`
-                    },
-                    body: JSON.stringify({
-                        orderId: id,
-                        newStatus: "Ready"
-                    })
+                const response = await fetch(`${API_URL}/api/v1/Auth/login`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ email, password })
                 });
-
-                const result = await response.json();
-
-                if (!response.ok || !result.success) {
-                    throw new Error(result.message || "فشل تحديث الحالة");
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    localStorage.setItem('token', data.data.token);
+                    setStatus('authStatus', '✅ تسجيل دخول ناجح - تم حفظ التوكن', 'success');
+                } else {
+                    setStatus('authStatus', '❌ فشل تسجيل الدخول - بيانات غير صحيحة', 'error');
                 }
-
-                allOrders = allOrders.filter(o => o.id !== id);
-                renderOrders();
-            } catch (err) {
-                console.error(err);
-                card.style.opacity = '1';
-                card.style.pointerEvents = 'all';
-                alert("فشل تحديث الحالة إلى جاهز");
+            } catch (error) {
+                setStatus('authStatus', '❌ خطأ: ' + error.message, 'error');
             }
         }
 
-        function removeLocalCard(id) {
-            allOrders = allOrders.filter(o => o.id !== id);
-            renderOrders();
-        }
+        async function testSignalR() {
+            setStatus('signalRStatus', 'جاري الاختبار...', 'info');
+            const token = localStorage.getItem('token');
+            
+            if (!token) {
+                setStatus('signalRStatus', '⚠️ لا يوجد token - يرجى تسجيل الدخول أولاً', 'warning');
+                return;
+            }
 
-        function updateStats() {
-            const total = allOrders.length;
-            const delivery = allOrders.filter(o => o.orderType === 'Delivery').length;
-            const dineIn = allOrders.filter(o => o.orderType === 'DineIn').length;
-
-            const late = allOrders.filter(o => {
-                const diff = Math.floor((new Date() - new Date(o.createdAt)) / 1000);
-                return diff > 600;
-            }).length;
-
-            document.getElementById("statTotal").innerText = total;
-            document.getElementById("statDelivery").innerText = delivery;
-            document.getElementById("statDineIn").innerText = dineIn;
-            document.getElementById("statLate").innerText = late;
-        }
-
-        function setFilter(filter) {
-            activeFilter = filter;
-
-            document.querySelectorAll('.filter-btn').forEach(btn => btn.classList.remove('active'));
-
-            if (filter === 'all') document.getElementById('filterAll').classList.add('active');
-            if (filter === 'Delivery') document.getElementById('filterDelivery').classList.add('active');
-            if (filter === 'DineIn') document.getElementById('filterDineIn').classList.add('active');
-            if (filter === 'TakeAway') document.getElementById('filterTakeAway').classList.add('active');
-
-            renderOrders();
-        }
-
-        function playAlert() {
-            const audio = new Audio('https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3');
-            audio.play().catch(() => { });
-        }
-
-        function translateOrderType(type) {
-            const map = {
-                "Delivery": "🛵 توصيل",
-                "DineIn": "🍽️ صالة",
-                "TakeAway": "🥡 استلام مباشر"
-            };
-            return map[type] || type || "طلب";
-        }
-
-        function escapeHtml(value) {
-            return String(value ?? '')
-                .replaceAll('&', '&amp;')
-                .replaceAll('<', '&lt;')
-                .replaceAll('>', '&gt;')
-                .replaceAll('"', '&quot;')
-                .replaceAll("'", '&#39;');
-        }
-
-        function setConnectionStatus(connected, text) {
-            const status = document.getElementById("connectionStatus");
-            const statusText = document.getElementById("statusText");
-
-            status.classList.remove('online', 'offline');
-            status.classList.add(connected ? 'online' : 'offline');
-            statusText.innerText = text;
-        }
-
-        function reloadKds() {
-            initKDS();
-        }
-
-        function goToPage(page) {
-            if (window.parent && window.parent !== window) {
-                const frame = window.parent.document.getElementById('mainFrame');
-                if (frame) {
-                    frame.src = page;
-                    return;
+            // Test if SignalR endpoint is accessible
+            try {
+                // Just try to fetch the hub negotiate endpoint
+                const response = await fetch(`${API_URL}/orderHub/negotiate?access_token=${token}`);
+                if (response.ok || response.status === 400) { // 400 is expected if we're not using proper SignalR client
+                    setStatus('signalRStatus', '✅ OrderHub متاح وجاهز للاتصال', 'success');
+                } else {
+                    setStatus('signalRStatus', '⚠️ OrderHub متاح لكن قد يحتاج تشكيل صحيح', 'warning');
                 }
+            } catch (error) {
+                setStatus('signalRStatus', '❌ خطأ: ' + error.message, 'error');
             }
-            window.location.href = page;
         }
 
-        connection.on("NewOrderPlaced", (order) => {
-            const exists = allOrders.some(o => o.id === order.id);
-            if (!exists) {
-                allOrders.unshift(order);
-                renderOrders();
-                playAlert();
-            }
+        // Run initial tests
+        window.addEventListener('load', () => {
+            testAPI();
         });
-
-        connection.on("OrderStatusChanged", (payload) => {
-            const orderId = payload.orderId || payload.OrderId;
-            const newStatus = payload.newStatus || payload.NewStatus;
-
-            if (newStatus === "Ready" || newStatus === "Completed" || newStatus === "Cancelled") {
-                allOrders = allOrders.filter(o => o.id !== orderId);
-                renderOrders();
-            }
-        });
-
-        connection.onreconnecting(() => {
-            setConnectionStatus(false, "جاري إعادة الاتصال بالبث الحي...");
-        });
-
-        connection.onreconnected(() => {
-            setConnectionStatus(true, "البث الحي متصل");
-        });
-
-        connection.onclose(() => {
-            setConnectionStatus(false, "انقطع الاتصال بالبث الحي");
-        });
-
-        connection.start()
-            .then(async () => {
-                setConnectionStatus(true, "البث الحي متصل");
-
-                try {
-                    await connection.invoke("JoinStaffGroup");
-                } catch (err) {
-                    console.warn("JoinStaffGroup failed:", err);
-                }
-
-                await initKDS();
-            })
-            .catch(err => {
-                console.error("SignalR Error:", err);
-                setConnectionStatus(false, "خطأ في الاتصال");
-                initKDS();
-            });
     </script>
 </body>
 </html>

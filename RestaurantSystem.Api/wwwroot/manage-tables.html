@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>إدارة الطاولات | نظام المطعم</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body class="bg-gray-50">
+    <div class="flex h-screen">
+        <!-- Sidebar -->
+        <div class="w-64 bg-gradient-to-b from-amber-900 to-amber-800 text-white p-6">
+            <div class="flex items-center gap-3 mb-8">
+                <i class="fas fa-chair text-2xl text-yellow-300"></i>
+                <h1 class="text-xl font-bold">إدارة الطاولات</h1>
+            </div>
+            <nav class="space-y-2">
+                <a href="#tables" class="flex items-center gap-3 px-4 py-3 rounded-lg bg-white/10">
+                    <i class="fas fa-list"></i> قائمة الطاولات
+                </a>
+            </nav>
+            <button onclick="logout()" class="w-full mt-auto text-left px-4 py-3 rounded-lg bg-red-500/20 hover:bg-red-500/30 transition">
+                <i class="fas fa-sign-out ml-2"></i> تسجيل الخروج
+            </button>
+        </div>
+
+        <!-- Main Content -->
+        <div class="flex-1 flex flex-col">
+            <div class="bg-white border-b border-gray-200 px-8 py-4 flex items-center justify-between">
+                <h2 class="text-2xl font-bold text-gray-800">إدارة الطاولات</h2>
+                <button onclick="showAddTableModal()" class="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition">
+                    <i class="fas fa-plus ml-2"></i> إضافة طاولة
+                </button>
+            </div>
+
+            <div class="flex-1 overflow-y-auto p-8">
+                <!-- Tables Grid -->
+                <div id="tablesGrid" class="grid grid-cols-4 gap-4">
+                    <!-- Tables will be loaded here -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Add Table Modal -->
+    <div id="addTableModal" class="hidden fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+        <div class="bg-white rounded-lg p-8 max-w-md w-full">
+            <h3 class="text-2xl font-bold text-gray-800 mb-4">إضافة طاولة جديدة</h3>
+            <form onsubmit="addTable(event)" class="space-y-4">
+                <div>
+                    <label class="block text-gray-700 font-bold mb-2">اسم الطاولة</label>
+                    <input type="text" id="tableName" required class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                </div>
+                <div>
+                    <label class="block text-gray-700 font-bold mb-2">السعة</label>
+                    <input type="number" id="tableCapacity" required min="1" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                </div>
+                <div>
+                    <label class="block text-gray-700 font-bold mb-2">الموقع</label>
+                    <input type="text" id="tableLocation" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                </div>
+                <div class="flex gap-3">
+                    <button type="submit" class="flex-1 bg-blue-600 text-white py-2 rounded-lg hover:bg-blue-700 transition">
+                        حفظ
+                    </button>
+                    <button type="button" onclick="closeAddTableModal()" class="flex-1 bg-gray-300 text-gray-700 py-2 rounded-lg hover:bg-gray-400 transition">
+                        إلغاء
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        const API_URL = window.location.origin;
+        const token = localStorage.getItem('token');
+
+        if (!token) {
+            window.location.href = '/login.html';
+        }
+
+        async function loadTables() {
+            try {
+                const response = await fetch(`${API_URL}/api/v1/Tables`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                const data = await response.json();
+                displayTables(data.data || []);
+            } catch (error) {
+                console.error('Error loading tables:', error);
+            }
+        }
+
+        function displayTables(tables) {
+            const grid = document.getElementById('tablesGrid');
+            grid.innerHTML = tables.map(table => `
+                <div class="bg-white rounded-lg p-6 shadow border-l-4 ${table.isAvailable ? 'border-green-500' : 'border-red-500'}">
+                    <div class="flex items-center justify-between mb-4">
+                        <h3 class="text-2xl font-bold text-gray-800">${table.name}</h3>
+                        <i class="fas fa-chair text-3xl ${table.isAvailable ? 'text-green-400' : 'text-red-400'}"></i>
+                    </div>
+                    <p class="text-sm text-gray-600 mb-2"><strong>السعة:</strong> ${table.capacity} أشخاص</p>
+                    <p class="text-sm text-gray-600 mb-4"><strong>الموقع:</strong> ${table.location}</p>
+                    <p class="text-sm font-bold mb-4">
+                        <span class="px-3 py-1 rounded-full ${table.isAvailable ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}">
+                            ${table.isAvailable ? 'متاحة' : 'مشغولة'}
+                        </span>
+                    </p>
+                    <div class="flex gap-2">
+                        <button onclick="editTable('${table.id}')" class="flex-1 bg-blue-600 text-white py-2 rounded-lg hover:bg-blue-700 transition text-sm">
+                            تعديل
+                        </button>
+                        <button onclick="deleteTable('${table.id}')" class="flex-1 bg-red-600 text-white py-2 rounded-lg hover:bg-red-700 transition text-sm">
+                            حذف
+                        </button>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function showAddTableModal() {
+            document.getElementById('addTableModal').classList.remove('hidden');
+        }
+
+        function closeAddTableModal() {
+            document.getElementById('addTableModal').classList.add('hidden');
+        }
+
+        async function addTable(event) {
+            event.preventDefault();
+            const name = document.getElementById('tableName').value;
+            const capacity = parseInt(document.getElementById('tableCapacity').value);
+            const location = document.getElementById('tableLocation').value;
+
+            try {
+                await fetch(`${API_URL}/api/v1/Tables`, {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ name, capacity, location, isAvailable: true })
+                });
+                closeAddTableModal();
+                document.getElementById('tableName').value = '';
+                document.getElementById('tableCapacity').value = '';
+                document.getElementById('tableLocation').value = '';
+                loadTables();
+            } catch (error) {
+                alert('خطأ في إضافة الطاولة');
+            }
+        }
+
+        function editTable(id) {
+            alert('سيتم تطوير ميزة التعديل قريباً');
+        }
+
+        async function deleteTable(id) {
+            if (!confirm('هل تريد حذف هذه الطاولة؟')) return;
+            try {
+                await fetch(`${API_URL}/api/v1/Tables/${id}`, {
+                    method: 'DELETE',
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                loadTables();
+            } catch (error) {
+                alert('خطأ في حذف الطاولة');
+            }
+        }
+
+        function logout() {
+            localStorage.removeItem('token');
+            window.location.href = '/login.html';
+        }
+
+        loadTables();
+    </script>
+</body>
+</html>

@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>لوحة الطاقم | نظام المطعم</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body class="bg-gray-50">
+    <div class="flex h-screen">
+        <!-- Sidebar -->
+        <div class="w-64 bg-gradient-to-b from-amber-900 to-amber-800 text-white p-6 overflow-y-auto">
+            <div class="flex items-center gap-3 mb-8">
+                <i class="fas fa-utensils text-2xl text-yellow-300"></i>
+                <div>
+                    <h1 class="text-xl font-bold">Restaurant</h1>
+                    <p class="text-xs text-amber-200">الخادم</p>
+                </div>
+            </div>
+
+            <nav class="space-y-2">
+                <a href="#orders" class="flex items-center gap-3 px-4 py-3 rounded-lg bg-white/10 hover:bg-white/20 transition">
+                    <i class="fas fa-shopping-cart"></i>
+                    <span>الطلبات الحالية</span>
+                </a>
+                <a href="#pending" class="flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-white/10 transition">
+                    <i class="fas fa-hourglass-end"></i>
+                    <span>قيد الإنتظار</span>
+                </a>
+                <a href="#history" class="flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-white/10 transition">
+                    <i class="fas fa-history"></i>
+                    <span>السجل</span>
+                </a>
+            </nav>
+
+            <div class="mt-auto pt-6 border-t border-white/20">
+                <button onclick="logout()" class="w-full px-4 py-2 rounded-lg bg-red-500/20 hover:bg-red-500/30 transition text-left flex items-center gap-2">
+                    <i class="fas fa-sign-out"></i>
+                    <span>تسجيل الخروج</span>
+                </button>
+            </div>
+        </div>
+
+        <!-- Main Content -->
+        <div class="flex-1 flex flex-col">
+            <!-- Header -->
+            <div class="bg-white border-b border-gray-200 px-8 py-4">
+                <h2 class="text-2xl font-bold text-gray-800">الطلبات الجارية</h2>
+                <p class="text-gray-600 text-sm mt-1">تحديث مباشر للطلبات الحالية في الصالة</p>
+            </div>
+
+            <!-- Content -->
+            <div class="flex-1 overflow-y-auto p-8">
+                <!-- Stats -->
+                <div class="grid grid-cols-3 gap-4 mb-8">
+                    <div class="bg-blue-50 rounded-lg p-4">
+                        <p class="text-gray-600 text-sm">الطلبات الجديدة</p>
+                        <p class="text-3xl font-bold text-blue-600 mt-2" id="newOrders">0</p>
+                    </div>
+                    <div class="bg-yellow-50 rounded-lg p-4">
+                        <p class="text-gray-600 text-sm">قيد الخدمة</p>
+                        <p class="text-3xl font-bold text-yellow-600 mt-2" id="servingOrders">0</p>
+                    </div>
+                    <div class="bg-green-50 rounded-lg p-4">
+                        <p class="text-gray-600 text-sm">المكتملة</p>
+                        <p class="text-3xl font-bold text-green-600 mt-2" id="completedOrders">0</p>
+                    </div>
+                </div>
+
+                <!-- Orders Grid -->
+                <div id="ordersContainer" class="grid grid-cols-2 gap-6">
+                    <div class="bg-white rounded-lg p-6 shadow">
+                        <div class="flex items-center justify-between mb-4">
+                            <div>
+                                <p class="text-sm text-gray-500">الطاولة A1</p>
+                                <p class="text-2xl font-bold text-gray-800">طلب جديد</p>
+                            </div>
+                            <i class="fas fa-bell text-3xl text-red-400/40"></i>
+                        </div>
+                        <div class="space-y-2 mb-4">
+                            <p class="text-sm"><span class="font-bold">2×</span> برجر لحم</p>
+                            <p class="text-sm"><span class="font-bold">1×</span> عصير برتقال</p>
+                        </div>
+                        <div class="flex gap-3">
+                            <button class="flex-1 bg-blue-600 text-white py-2 rounded-lg hover:bg-blue-700 transition">
+                                <i class="fas fa-check ml-2"></i> قيد الخدمة
+                            </button>
+                            <button class="flex-1 bg-gray-200 text-gray-700 py-2 rounded-lg hover:bg-gray-300 transition">
+                                <i class="fas fa-ban ml-2"></i> إلغاء
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const API_URL = window.location.origin;
+        const token = localStorage.getItem('token');
+
+        if (!token) {
+            window.location.href = '/login.html';
+        }
+
+        async function loadOrders() {
+            try {
+                const response = await fetch(`${API_URL}/api/v1/Orders`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                const data = await response.json();
+                displayOrders(data.data || []);
+            } catch (error) {
+                console.error('Error loading orders:', error);
+            }
+        }
+
+        function displayOrders(orders) {
+            const newOrders = orders.filter(o => o.status === 'Pending')?.length || 0;
+            const servingOrders = orders.filter(o => o.status === 'Serving')?.length || 0;
+            const completedOrders = orders.filter(o => o.status === 'Completed')?.length || 0;
+
+            document.getElementById('newOrders').textContent = newOrders;
+            document.getElementById('servingOrders').textContent = servingOrders;
+            document.getElementById('completedOrders').textContent = completedOrders;
+
+            const container = document.getElementById('ordersContainer');
+            container.innerHTML = orders.map(order => `
+                <div class="bg-white rounded-lg p-6 shadow border-l-4 border-${getStatusColor(order.status)}">
+                    <div class="flex items-center justify-between mb-4">
+                        <div>
+                            <p class="text-sm text-gray-500">الطاولة ${order.tableId?.substring(0, 2)}</p>
+                            <p class="text-2xl font-bold text-gray-800">${getStatusText(order.status)}</p>
+                        </div>
+                    </div>
+                    <div class="space-y-2 mb-4">
+                        ${(order.items || []).map(item => `
+                            <p class="text-sm"><span class="font-bold">${item.quantity}×</span> ${item.menuItemId}</p>
+                        `).join('')}
+                    </div>
+                    <p class="text-xs text-gray-500 mb-4">${new Date(order.createdAt).toLocaleString('ar')}</p>
+                    <div class="flex gap-2">
+                        <button onclick="updateOrderStatus('${order.id}', 'Ready')" class="flex-1 bg-green-600 text-white py-2 rounded-lg hover:bg-green-700 transition text-sm">
+                            جاهز
+                        </button>
+                        <button onclick="updateOrderStatus('${order.id}', 'Served')" class="flex-1 bg-blue-600 text-white py-2 rounded-lg hover:bg-blue-700 transition text-sm">
+                            خدم
+                        </button>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function getStatusColor(status) {
+            const colors = {
+                'Pending': 'red',
+                'Preparing': 'yellow',
+                'Ready': 'blue',
+                'Served': 'green',
+                'Completed': 'gray'
+            };
+            return colors[status] || 'gray';
+        }
+
+        function getStatusText(status) {
+            const texts = {
+                'Pending': 'طلب جديد',
+                'Preparing': 'قيد التحضير',
+                'Ready': 'جاهز للتقديم',
+                'Served': 'تم التقديم',
+                'Completed': 'مكتمل'
+            };
+            return texts[status] || status;
+        }
+
+        async function updateOrderStatus(orderId, status) {
+            try {
+                await fetch(`${API_URL}/api/v1/Orders/${orderId}/status`, {
+                    method: 'PUT',
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ status })
+                });
+                loadOrders();
+            } catch (error) {
+                console.error('Error updating order:', error);
+            }
+        }
+
+        function logout() {
+            localStorage.removeItem('token');
+            window.location.href = '/login.html';
+        }
+
+        // Load orders on page load and every 5 seconds
+        loadOrders();
+        setInterval(loadOrders, 5000);
+    </script>
+</body>
+</html>

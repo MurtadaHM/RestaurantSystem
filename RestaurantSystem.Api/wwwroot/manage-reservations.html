@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>إدارة الحجوزات | نظام المطعم</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body class="bg-gray-50">
+    <div class="flex h-screen">
+        <!-- Sidebar -->
+        <div class="w-64 bg-gradient-to-b from-amber-900 to-amber-800 text-white p-6">
+            <div class="flex items-center gap-3 mb-8">
+                <i class="fas fa-calendar text-2xl text-yellow-300"></i>
+                <h1 class="text-xl font-bold">إدارة الحجوزات</h1>
+            </div>
+            <nav class="space-y-2">
+                <a href="#upcoming" class="flex items-center gap-3 px-4 py-3 rounded-lg bg-white/10">
+                    <i class="fas fa-list"></i> القادمة
+                </a>
+                <a href="#confirmed" class="flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-white/10">
+                    <i class="fas fa-check-circle"></i> المؤكدة
+                </a>
+            </nav>
+            <button onclick="logout()" class="w-full mt-auto text-left px-4 py-3 rounded-lg bg-red-500/20 hover:bg-red-500/30 transition">
+                <i class="fas fa-sign-out ml-2"></i> تسجيل الخروج
+            </button>
+        </div>
+
+        <!-- Main Content -->
+        <div class="flex-1 flex flex-col">
+            <div class="bg-white border-b border-gray-200 px-8 py-4 flex items-center justify-between">
+                <h2 class="text-2xl font-bold text-gray-800">إدارة الحجوزات</h2>
+                <button onclick="showAddReservationModal()" class="px-6 py-2 bg-cyan-600 text-white rounded-lg hover:bg-cyan-700 transition">
+                    <i class="fas fa-plus ml-2"></i> حجز جديد
+                </button>
+            </div>
+
+            <div class="flex-1 overflow-y-auto p-8">
+                <div class="bg-white rounded-lg shadow overflow-hidden">
+                    <table class="w-full">
+                        <thead class="bg-gray-100">
+                            <tr>
+                                <th class="px-6 py-4 text-right text-gray-700 font-bold">الضيف</th>
+                                <th class="px-6 py-4 text-right text-gray-700 font-bold">الهاتف</th>
+                                <th class="px-6 py-4 text-right text-gray-700 font-bold">عدد الأشخاص</th>
+                                <th class="px-6 py-4 text-right text-gray-700 font-bold">الموعد</th>
+                                <th class="px-6 py-4 text-right text-gray-700 font-bold">الحالة</th>
+                                <th class="px-6 py-4 text-right text-gray-700 font-bold">الإجراءات</th>
+                            </tr>
+                        </thead>
+                        <tbody id="reservationsTable" class="divide-y divide-gray-200">
+                            <!-- Reservations will be loaded here -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Add Reservation Modal -->
+    <div id="addReservationModal" class="hidden fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+        <div class="bg-white rounded-lg p-8 max-w-lg w-full">
+            <h3 class="text-2xl font-bold text-gray-800 mb-4">إضافة حجز جديد</h3>
+            <form onsubmit="addReservation(event)" class="space-y-4">
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-gray-700 font-bold mb-2">اسم الضيف</label>
+                        <input type="text" id="guestName" required class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-500">
+                    </div>
+                    <div>
+                        <label class="block text-gray-700 font-bold mb-2">رقم الهاتف</label>
+                        <input type="tel" id="guestPhone" required class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-500">
+                    </div>
+                </div>
+                <div>
+                    <label class="block text-gray-700 font-bold mb-2">البريد الإلكتروني</label>
+                    <input type="email" id="guestEmail" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-500">
+                </div>
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-gray-700 font-bold mb-2">عدد الأشخاص</label>
+                        <input type="number" id="numberOfGuests" required min="1" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-500">
+                    </div>
+                    <div>
+                        <label class="block text-gray-700 font-bold mb-2">الموعد</label>
+                        <input type="datetime-local" id="reservationTime" required class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-500">
+                    </div>
+                </div>
+                <div>
+                    <label class="block text-gray-700 font-bold mb-2">ملاحظات</label>
+                    <textarea id="reservationNotes" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-500" rows="2"></textarea>
+                </div>
+                <div class="flex gap-3">
+                    <button type="submit" class="flex-1 bg-cyan-600 text-white py-2 rounded-lg hover:bg-cyan-700 transition">
+                        حفظ
+                    </button>
+                    <button type="button" onclick="closeAddReservationModal()" class="flex-1 bg-gray-300 text-gray-700 py-2 rounded-lg hover:bg-gray-400 transition">
+                        إلغاء
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        const API_URL = window.location.origin;
+        const token = localStorage.getItem('token');
+
+        if (!token) {
+            window.location.href = '/login.html';
+        }
+
+        async function loadReservations() {
+            try {
+                const response = await fetch(`${API_URL}/api/v1/Reservations`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                const data = await response.json();
+                displayReservations(data.data || []);
+            } catch (error) {
+                console.error('Error loading reservations:', error);
+            }
+        }
+
+        function displayReservations(reservations) {
+            const tbody = document.getElementById('reservationsTable');
+            tbody.innerHTML = reservations.map(res => `
+                <tr>
+                    <td class="px-6 py-4 text-gray-800 font-bold">${res.guestName}</td>
+                    <td class="px-6 py-4 text-gray-600">${res.guestPhone}</td>
+                    <td class="px-6 py-4 text-gray-600">${res.numberOfGuests}</td>
+                    <td class="px-6 py-4 text-gray-600">${new Date(res.reservationTime).toLocaleString('ar')}</td>
+                    <td class="px-6 py-4">
+                        <span class="px-3 py-1 rounded-full text-xs font-bold ${
+                            res.status === 'Confirmed' ? 'bg-green-100 text-green-800' :
+                            res.status === 'Pending' ? 'bg-yellow-100 text-yellow-800' :
+                            'bg-gray-100 text-gray-800'
+                        }">
+                            ${res.status}
+                        </span>
+                    </td>
+                    <td class="px-6 py-4">
+                        <div class="flex gap-2">
+                            <button onclick="confirmReservation('${res.id}')" class="px-3 py-1 bg-green-600 text-white rounded-lg hover:bg-green-700 transition text-sm">
+                                تأكيد
+                            </button>
+                            <button onclick="deleteReservation('${res.id}')" class="px-3 py-1 bg-red-600 text-white rounded-lg hover:bg-red-700 transition text-sm">
+                                حذف
+                            </button>
+                        </div>
+                    </td>
+                </tr>
+            `).join('');
+        }
+
+        function showAddReservationModal() {
+            document.getElementById('addReservationModal').classList.remove('hidden');
+        }
+
+        function closeAddReservationModal() {
+            document.getElementById('addReservationModal').classList.add('hidden');
+        }
+
+        async function addReservation(event) {
+            event.preventDefault();
+            const guestName = document.getElementById('guestName').value;
+            const guestPhone = document.getElementById('guestPhone').value;
+            const guestEmail = document.getElementById('guestEmail').value;
+            const numberOfGuests = parseInt(document.getElementById('numberOfGuests').value);
+            const reservationTime = document.getElementById('reservationTime').value;
+            const notes = document.getElementById('reservationNotes').value;
+
+            try {
+                await fetch(`${API_URL}/api/v1/Reservations`, {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ guestName, guestPhone, guestEmail, numberOfGuests, reservationTime, notes, status: 'Pending' })
+                });
+                closeAddReservationModal();
+                document.getElementById('addReservationModal').querySelector('form').reset();
+                loadReservations();
+            } catch (error) {
+                alert('خطأ في إضافة الحجز');
+            }
+        }
+
+        async function confirmReservation(id) {
+            try {
+                await fetch(`${API_URL}/api/v1/Reservations/${id}`, {
+                    method: 'PUT',
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ status: 'Confirmed' })
+                });
+                loadReservations();
+            } catch (error) {
+                alert('خطأ في تأكيد الحجز');
+            }
+        }
+
+        async function deleteReservation(id) {
+            if (!confirm('هل تريد حذف هذا الحجز؟')) return;
+            try {
+                await fetch(`${API_URL}/api/v1/Reservations/${id}`, {
+                    method: 'DELETE',
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                loadReservations();
+            } catch (error) {
+                alert('خطأ في حذف الحجز');
+            }
+        }
+
+        function logout() {
+            localStorage.removeItem('token');
+            window.location.href = '/login.html';
+        }
+
+        loadReservations();
+    </script>
+</body>
+</html>

@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>إدارة الوصفات | نظام المطعم</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body class="bg-gray-50">
+    <div class="flex h-screen">
+        <!-- Sidebar -->
+        <div class="w-64 bg-gradient-to-b from-orange-900 to-orange-800 text-white p-6">
+            <div class="flex items-center gap-3 mb-8">
+                <i class="fas fa-book text-2xl text-orange-300"></i>
+                <h1 class="text-xl font-bold">الوصفات</h1>
+            </div>
+            <nav class="space-y-2">
+                <a href="#recipes" class="flex items-center gap-3 px-4 py-3 rounded-lg bg-white/10">
+                    <i class="fas fa-list"></i> الوصفات
+                </a>
+                <a href="#ingredients" class="flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-white/10">
+                    <i class="fas fa-leaf"></i> المكونات
+                </a>
+            </nav>
+            <button onclick="logout()" class="w-full mt-auto text-left px-4 py-3 rounded-lg bg-red-500/20 hover:bg-red-500/30 transition">
+                <i class="fas fa-sign-out ml-2"></i> تسجيل الخروج
+            </button>
+        </div>
+
+        <!-- Main Content -->
+        <div class="flex-1 flex flex-col">
+            <div class="bg-white border-b border-gray-200 px-8 py-4 flex items-center justify-between">
+                <h2 class="text-2xl font-bold text-gray-800">إدارة الوصفات والمكونات</h2>
+                <button onclick="showAddRecipeModal()" class="px-6 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 transition">
+                    <i class="fas fa-plus ml-2"></i> إضافة وصفة
+                </button>
+            </div>
+
+            <div class="flex-1 overflow-y-auto p-8">
+                <!-- Recipes Grid -->
+                <div id="recipesGrid" class="grid grid-cols-3 gap-6">
+                    <!-- Recipes will be loaded here -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Add Recipe Modal -->
+    <div id="addRecipeModal" class="hidden fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4 overflow-y-auto">
+        <div class="bg-white rounded-lg p-8 max-w-2xl w-full my-8">
+            <h3 class="text-2xl font-bold text-gray-800 mb-4">إضافة وصفة جديدة</h3>
+            <form onsubmit="addRecipe(event)" class="space-y-4">
+                <div>
+                    <label class="block text-gray-700 font-bold mb-2">اسم الوصفة</label>
+                    <input type="text" id="recipeName" required class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500">
+                </div>
+                
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-gray-700 font-bold mb-2">وقت التحضير (دقائق)</label>
+                        <input type="number" id="prepTime" required min="1" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500">
+                    </div>
+                    <div>
+                        <label class="block text-gray-700 font-bold mb-2">عدد الأشخاص</label>
+                        <input type="number" id="servings" required min="1" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500">
+                    </div>
+                </div>
+
+                <div>
+                    <label class="block text-gray-700 font-bold mb-2">المكونات</label>
+                    <textarea id="ingredients" required class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500" rows="4" placeholder="اكتب المكونات (سطر واحد لكل مكون)"></textarea>
+                </div>
+
+                <div>
+                    <label class="block text-gray-700 font-bold mb-2">طريقة التحضير</label>
+                    <textarea id="instructions" required class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500" rows="4" placeholder="اكتب خطوات التحضير"></textarea>
+                </div>
+
+                <div class="flex gap-3">
+                    <button type="submit" class="flex-1 bg-orange-600 text-white py-2 rounded-lg hover:bg-orange-700 transition">حفظ</button>
+                    <button type="button" onclick="closeAddRecipeModal()" class="flex-1 bg-gray-300 text-gray-700 py-2 rounded-lg hover:bg-gray-400 transition">إلغاء</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        const API_URL = window.location.origin;
+        const token = localStorage.getItem('token');
+
+        if (!token) window.location.href = '/login.html';
+
+        // Mock recipes data
+        const mockRecipes = [
+            {
+                id: '1',
+                name: 'برجر لحم بالجبنة',
+                prepTime: 15,
+                servings: 2,
+                ingredients: ['لحم مفروم', 'جبنة', 'خس', 'طماطم', 'خبز'],
+                instructions: '1. شوي اللحم - 2. أضف الجبنة - 3. جمع المكونات'
+            }
+        ];
+
+        function loadRecipes() {
+            // In a real app, fetch from API
+            displayRecipes(mockRecipes);
+        }
+
+        function displayRecipes(recipes) {
+            const grid = document.getElementById('recipesGrid');
+            grid.innerHTML = recipes.map(recipe => `
+                <div class="bg-white rounded-lg shadow hover:shadow-lg transition p-6">
+                    <div class="bg-gradient-to-r from-orange-400 to-red-400 h-32 rounded-lg mb-4 flex items-center justify-center">
+                        <i class="fas fa-utensils text-4xl text-white/40"></i>
+                    </div>
+                    <h3 class="text-xl font-bold text-gray-800 mb-2">${recipe.name}</h3>
+                    <div class="space-y-2 mb-4 text-sm text-gray-600">
+                        <p><i class="fas fa-clock ml-2 text-orange-600"></i>${recipe.prepTime} دقيقة</p>
+                        <p><i class="fas fa-user ml-2 text-orange-600"></i>${recipe.servings} أشخاص</p>
+                    </div>
+                    <div class="flex gap-2">
+                        <button onclick="viewRecipe('${recipe.id}')" class="flex-1 bg-blue-600 text-white py-2 rounded-lg hover:bg-blue-700 transition text-sm">عرض</button>
+                        <button onclick="deleteRecipe('${recipe.id}')" class="flex-1 bg-red-600 text-white py-2 rounded-lg hover:bg-red-700 transition text-sm">حذف</button>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function showAddRecipeModal() {
+            document.getElementById('addRecipeModal').classList.remove('hidden');
+        }
+
+        function closeAddRecipeModal() {
+            document.getElementById('addRecipeModal').classList.add('hidden');
+        }
+
+        async function addRecipe(event) {
+            event.preventDefault();
+            const name = document.getElementById('recipeName').value;
+            const prepTime = parseInt(document.getElementById('prepTime').value);
+            const servings = parseInt(document.getElementById('servings').value);
+            const ingredients = document.getElementById('ingredients').value.split('\n');
+            const instructions = document.getElementById('instructions').value;
+
+            try {
+                await fetch(`${API_URL}/api/v1/Recipes`, {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ name, prepTime, servings, ingredients, instructions })
+                });
+                closeAddRecipeModal();
+                document.getElementById('addRecipeModal').querySelector('form').reset();
+                loadRecipes();
+            } catch (error) {
+                alert('خطأ في إضافة الوصفة');
+            }
+        }
+
+        function viewRecipe(id) {
+            alert('سيتم تطوير ميزة العرض قريباً');
+        }
+
+        function deleteRecipe(id) {
+            if (!confirm('هل تريد حذف هذه الوصفة؟')) return;
+            alert('تم حذف الوصفة');
+        }
+
+        function logout() {
+            localStorage.removeItem('token');
+            window.location.href = '/login.html';
+        }
+
+        loadRecipes();
+    </script>
+</body>
+</html>

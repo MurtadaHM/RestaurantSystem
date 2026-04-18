@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>لوحة المطبخ | نظام المطعم</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body class="bg-gray-50">
+    <div class="flex h-screen">
+        <!-- Sidebar -->
+        <div class="w-64 bg-gradient-to-b from-red-900 to-red-800 text-white p-6">
+            <div class="flex items-center gap-3 mb-8">
+                <i class="fas fa-fire-burner text-2xl text-orange-300"></i>
+                <h1 class="text-xl font-bold">لوحة المطبخ</h1>
+            </div>
+            <button onclick="logout()" class="w-full mt-auto text-left px-4 py-3 rounded-lg bg-red-500/20 hover:bg-red-500/30 transition">
+                <i class="fas fa-sign-out ml-2"></i> تسجيل الخروج
+            </button>
+        </div>
+
+        <!-- Main Content -->
+        <div class="flex-1 flex flex-col">
+            <!-- Header -->
+            <div class="bg-white border-b border-gray-200 px-8 py-4">
+                <h2 class="text-2xl font-bold text-gray-800">الطلبات المنتظرة للتحضير</h2>
+                <p class="text-gray-600 text-sm mt-1">الطلبات الجديدة والقيد الإنتظار</p>
+            </div>
+
+            <!-- Content -->
+            <div class="flex-1 overflow-y-auto p-8">
+                <!-- Stats -->
+                <div class="grid grid-cols-4 gap-4 mb-8">
+                    <div class="bg-red-50 rounded-lg p-4">
+                        <p class="text-gray-600 text-sm">طلبات جديدة</p>
+                        <p class="text-3xl font-bold text-red-600 mt-2" id="pendingCount">0</p>
+                    </div>
+                    <div class="bg-yellow-50 rounded-lg p-4">
+                        <p class="text-gray-600 text-sm">قيد التحضير</p>
+                        <p class="text-3xl font-bold text-yellow-600 mt-2" id="preparingCount">0</p>
+                    </div>
+                    <div class="bg-blue-50 rounded-lg p-4">
+                        <p class="text-gray-600 text-sm">جاهزة للتقديم</p>
+                        <p class="text-3xl font-bold text-blue-600 mt-2" id="readyCount">0</p>
+                    </div>
+                    <div class="bg-green-50 rounded-lg p-4">
+                        <p class="text-gray-600 text-sm">المكتملة</p>
+                        <p class="text-3xl font-bold text-green-600 mt-2" id="completedCount">0</p>
+                    </div>
+                </div>
+
+                <!-- Orders -->
+                <div id="ordersContainer" class="grid grid-cols-2 gap-6">
+                    <!-- Orders will be loaded here -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const API_URL = window.location.origin;
+        const token = localStorage.getItem('token');
+
+        if (!token) {
+            window.location.href = '/login.html';
+        }
+
+        async function loadOrders() {
+            try {
+                const response = await fetch(`${API_URL}/api/v1/Orders`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                const data = await response.json();
+                displayOrders(data.data || []);
+            } catch (error) {
+                console.error('Error loading orders:', error);
+            }
+        }
+
+        function displayOrders(orders) {
+            const pendingCount = orders.filter(o => o.status === 'Pending')?.length || 0;
+            const preparingCount = orders.filter(o => o.status === 'Preparing')?.length || 0;
+            const readyCount = orders.filter(o => o.status === 'Ready')?.length || 0;
+            const completedCount = orders.filter(o => o.status === 'Completed')?.length || 0;
+
+            document.getElementById('pendingCount').textContent = pendingCount;
+            document.getElementById('preparingCount').textContent = preparingCount;
+            document.getElementById('readyCount').textContent = readyCount;
+            document.getElementById('completedCount').textContent = completedCount;
+
+            // Filter and display only pending and preparing orders
+            const activeOrders = orders.filter(o => ['Pending', 'Preparing'].includes(o.status));
+            
+            const container = document.getElementById('ordersContainer');
+            container.innerHTML = activeOrders.map(order => `
+                <div class="bg-white rounded-lg shadow-lg p-6 border-l-4 ${
+                    order.status === 'Pending' ? 'border-red-500 bg-red-50/30' : 'border-yellow-500 bg-yellow-50/30'
+                }">
+                    <div class="flex items-center justify-between mb-4">
+                        <div>
+                            <p class="text-sm text-gray-500">رقم الطلب: ${order.id?.substring(0, 8)}</p>
+                            <p class="text-2xl font-bold text-gray-800">الطاولة ${order.tableId?.substring(0, 2)}</p>
+                        </div>
+                        ${order.status === 'Pending' ? '<i class="fas fa-bell text-4xl text-red-400/30"></i>' : '<i class="fas fa-hourglass-half text-4xl text-yellow-400/30"></i>'}
+                    </div>
+
+                    <div class="bg-white rounded-lg p-4 mb-4 max-h-40 overflow-y-auto">
+                        <p class="font-bold text-gray-800 mb-2">العناصر:</p>
+                        <ul class="space-y-2">
+                            ${(order.items || []).map(item => `
+                                <li class="flex justify-between text-sm">
+                                    <span class="text-gray-700">${item.menuItemId || 'عنصر'}</span>
+                                    <span class="font-bold text-gray-800">${item.quantity}×</span>
+                                </li>
+                            `).join('')}
+                        </ul>
+                    </div>
+
+                    <p class="text-xs text-gray-500 mb-4">الوقت: ${new Date(order.createdAt).toLocaleTimeString('ar')}</p>
+
+                    <div class="flex gap-2">
+                        <button onclick="updateOrderStatus('${order.id}', 'Preparing')" 
+                            class="flex-1 ${order.status === 'Preparing' ? 'bg-yellow-600' : 'bg-blue-600'} text-white py-2 rounded-lg hover:shadow-lg transition font-bold">
+                            <i class="fas fa-fire ml-2"></i> قيد التحضير
+                        </button>
+                        <button onclick="updateOrderStatus('${order.id}', 'Ready')" 
+                            class="flex-1 bg-green-600 text-white py-2 rounded-lg hover:shadow-lg transition font-bold">
+                            <i class="fas fa-check ml-2"></i> جاهز
+                        </button>
+                    </div>
+                </div>
+            `).join('');
+
+            if (activeOrders.length === 0) {
+                container.innerHTML = '<div class="col-span-2 text-center py-12"><i class="fas fa-check-circle text-6xl text-green-400/30 mb-4"></i><p class="text-gray-600 text-lg">جميع الطلبات مكتملة!</p></div>';
+            }
+        }
+
+        async function updateOrderStatus(orderId, status) {
+            try {
+                await fetch(`${API_URL}/api/v1/Orders/${orderId}/status`, {
+                    method: 'PUT',
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ status })
+                });
+                loadOrders();
+            } catch (error) {
+                console.error('Error updating order:', error);
+                alert('خطأ في تحديث الطلب');
+            }
+        }
+
+        function logout() {
+            localStorage.removeItem('token');
+            window.location.href = '/login.html';
+        }
+
+        // Load orders on page load and every 3 seconds
+        loadOrders();
+        setInterval(loadOrders, 3000);
+    </script>
+</body>
+</html>
