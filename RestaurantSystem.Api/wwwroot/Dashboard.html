@@ -7,6 +7,12 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        /* Hide sidebars in iframes to prevent duplication */
+        iframe body > .flex > div:first-child {
+            display: none !important;
+        }
+    </style>
 </head>
 <body class="bg-gray-50">
     <div class="flex h-screen">
@@ -21,26 +27,32 @@
             </div>
 
             <nav class="space-y-2 mb-8">
-                <a href="#dashboard" class="flex items-center gap-3 px-4 py-3 rounded-lg bg-white/10 hover:bg-white/20 transition">
+                <a onclick="return navigateTo('dashboard')" href="#dashboard" class="flex items-center gap-3 px-4 py-3 rounded-lg bg-white/10 hover:bg-white/20 transition cursor-pointer">
                     <i class="fas fa-chart-pie"></i> <span>لوحة التحكم</span>
                 </a>
-                <a href="#orders" class="flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-white/10 transition">
+                <a onclick="return navigateTo('orders')" href="#orders" class="flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-white/10 transition cursor-pointer">
                     <i class="fas fa-clipboard-list"></i> <span>الطلبات</span>
                 </a>
-                <a href="#waiter-orders" class="flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-white/10 transition">
+                <a onclick="return navigateTo('waiter-orders')" href="#waiter-orders" class="flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-white/10 transition cursor-pointer">
                     <i class="fas fa-shopping-cart"></i> <span>إنشاء طلب</span>
                 </a>
-                <a href="#kitchen" class="flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-white/10 transition">
+                <a onclick="return navigateTo('kitchen')" href="#kitchen" class="flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-white/10 transition cursor-pointer">
                     <i class="fas fa-fire-burner"></i> <span>لوحة المطبخ</span>
                 </a>
-                <a href="#menu" class="flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-white/10 transition">
+                <a onclick="return navigateTo('menu')" href="#menu" class="flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-white/10 transition cursor-pointer">
                     <i class="fas fa-utensils"></i> <span>إدارة المنيو</span>
                 </a>
-                <a href="#tables" class="flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-white/10 transition">
+                <a onclick="return navigateTo('tables')" href="#tables" class="flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-white/10 transition cursor-pointer">
                     <i class="fas fa-chair"></i> <span>الطاولات</span>
                 </a>
-                <a href="#reservations" class="flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-white/10 transition">
+                <a onclick="return navigateTo('reservations')" href="#reservations" class="flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-white/10 transition cursor-pointer">
                     <i class="fas fa-calendar"></i> <span>الحجوزات</span>
+                </a>
+                <a onclick="return navigateTo('categories')" href="#categories" class="flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-white/10 transition cursor-pointer">
+                    <i class="fas fa-cube"></i> <span>الفئات</span>
+                </a>
+                <a onclick="return navigateTo('inventory')" href="#inventory" class="flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-white/10 transition cursor-pointer">
+                    <i class="fas fa-boxes"></i> <span>المخزون</span>
                 </a>
             </nav>
 
@@ -61,7 +73,7 @@
         <!-- Main Content -->
         <div class="flex-1 flex flex-col">
             <!-- Header -->
-            <div class="bg-white border-b border-gray-200 px-8 py-4 flex items-center justify-between">
+            <div role="contentinfo" class="bg-white border-b border-gray-200 px-8 py-4 flex items-center justify-between">
                 <div>
                     <h2 class="text-3xl font-bold text-gray-800">لوحة التحكم الرئيسية</h2>
                     <p class="text-gray-600 text-sm mt-1">ملخص عام لعمليات المطعم</p>
@@ -77,7 +89,13 @@
             </div>
 
             <!-- Content -->
-            <div class="flex-1 overflow-y-auto p-8">
+            <div id="mainContent" class="flex-1 flex flex-col overflow-hidden">
+                <!-- Page will be loaded in iframe -->
+                <iframe id="pageFrame" style="border: none; width: 100%; height: 100%; display: none;"></iframe>
+            </div>
+
+            <!-- Default Dashboard View -->
+            <div id="dashboardView" class="flex-1 overflow-y-auto p-8">
                 <!-- Stats Cards -->
                 <div class="grid grid-cols-4 gap-6 mb-8">
                     <div class="bg-white rounded-lg p-6 shadow hover:shadow-lg transition">
@@ -138,7 +156,7 @@
                 <div class="bg-white rounded-lg shadow overflow-hidden">
                     <div class="px-6 py-4 border-b border-gray-200 flex items-center justify-between">
                         <h3 class="text-lg font-bold text-gray-800">آخر الطلبات</h3>
-                        <a href="#orders" class="text-blue-600 hover:text-blue-800 text-sm font-bold">عرض الكل</a>
+                        <a onclick="navigateTo('orders')" style="cursor: pointer;" class="text-blue-600 hover:text-blue-800 text-sm font-bold">عرض الكل</a>
                     </div>
                     <div class="overflow-x-auto">
                         <table class="w-full">
@@ -169,7 +187,70 @@
             window.location.href = '/login.html';
         }
 
-        async function fetchData() {
+        // Page mapping
+        const pageMap = {
+            'dashboard': { title: 'لوحة التحكم الرئيسية', file: 'dashboard-content' },
+            'orders': { title: 'الطلبات', file: 'waiter-dashboard.html' },
+            'waiter-orders': { title: 'إنشاء طلب', file: 'waiter-order.html' },
+            'kitchen': { title: 'لوحة المطبخ', file: 'chef-kitchen.html' },
+            'menu': { title: 'إدارة المنيو', file: 'manage-menu.html' },
+            'tables': { title: 'إدارة الطاولات', file: 'manage-tables.html' },
+            'reservations': { title: 'الحجوزات', file: 'manage-reservations.html' },
+            'categories': { title: 'إدارة الفئات', file: 'manage-categories.html' },
+            'departments': { title: 'إدارة الأقسام', file: 'manage-departments.html' },
+            'inventory': { title: 'المخزون', file: 'inventory-dashboard.html' }
+        };
+
+        // Handle navigation
+        function navigateTo(page) {
+            window.location.hash = page;
+            return false;
+        }
+
+        // Load page content
+        async function loadPage(pageKey) {
+            const mainContent = document.getElementById('mainContent');
+            const pageFrame = document.getElementById('pageFrame');
+            const dashboardView = document.getElementById('dashboardView');
+            const page = pageMap[pageKey];
+
+            if (!page) {
+                pageKey = 'dashboard';
+                page = pageMap[pageKey];
+            }
+
+            // Update header title
+            const header = document.querySelector('[role="contentinfo"]');
+            if (header) {
+                const title = header.querySelector('h2');
+                if (title) title.textContent = page.title;
+            }
+
+            // Update nav active state
+            document.querySelectorAll('a[href^="#"]').forEach(nav => {
+                nav.classList.remove('active');
+                if (nav.getAttribute('href') === '#' + pageKey) {
+                    nav.classList.add('active');
+                }
+            });
+
+            if (pageKey === 'dashboard') {
+                // Show built-in dashboard
+                dashboardView.style.display = 'block';
+                mainContent.style.display = 'none';
+                pageFrame.style.display = 'none';
+                fetchDashboardData();
+            } else {
+                // Load page in iframe
+                mainContent.style.display = 'flex';
+                dashboardView.style.display = 'none';
+                pageFrame.style.display = 'block';
+                pageFrame.src = page.file + '?t=' + new Date().getTime();
+            }
+        }
+
+        // Fetch dashboard data
+        async function fetchDashboardData() {
             try {
                 const headers = { 'Authorization': `Bearer ${token}` };
 
@@ -181,8 +262,8 @@
 
                 // Fetch Tables
                 const tablesRes = await fetch(`${API_URL}/api/v1/Tables`, { headers });
-                const tablesData = tablesRes.json();
-                const tables = (await tablesData).data || [];
+                const tablesData = await tablesRes.json();
+                const tables = tablesData.data || [];
                 const occupied = tables.filter(t => !t.isAvailable).length;
                 document.getElementById('occupiedTables').textContent = occupied;
 
@@ -270,10 +351,22 @@
             window.location.href = '/login.html';
         }
 
-        // Load data
-        fetchData();
-        // Refresh every 30 seconds
-        setInterval(fetchData, 30000);
+        // Handle hash changes
+        window.addEventListener('hashchange', () => {
+            const hash = window.location.hash.substring(1) || 'dashboard';
+            loadPage(hash);
+        });
+
+        // Initial load
+        const initialPage = window.location.hash.substring(1) || 'dashboard';
+        loadPage(initialPage);
+
+        // Refresh dashboard data every 30 seconds
+        setInterval(() => {
+            if (window.location.hash === '#dashboard' || !window.location.hash) {
+                fetchDashboardData();
+            }
+        }, 30000);
     </script>
 </body>
 </html>
