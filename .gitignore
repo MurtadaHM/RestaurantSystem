@@ -15,9 +15,11 @@
 .env.prod
 .env.prod.local
 
-# ملفات appsettings الخاصة بالتطوير
+# ملفات appsettings الخاصة بالتطوير - لا تضيف الملفات الحقيقية
+appsettings.json
 appsettings.Development.json
 appsettings.*.json
+!appsettings.template.json
 RestaurantSystem.Api/appsettings.Development.json
 
 # الملفات المؤقتة والـ Logs

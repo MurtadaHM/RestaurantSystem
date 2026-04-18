@@ -86,7 +86,7 @@ builder.Services.AddScoped<IOrderNotificationService, OrderNotificationService>(
 // 3) JWT Authentication
 // ============================================================
 var jwtKey = builder.Configuration["Jwt:Key"]
-             ?? throw new InvalidOperationException("JWT Key is missing.");
+             ?? throw new InvalidOperationException("super_secret_key_which_must_be_long_enough_for_hmac_sha256.");
 
 var jwtIssuer = builder.Configuration["Jwt:Issuer"];
 var jwtAudience = builder.Configuration["Jwt:Audience"];
