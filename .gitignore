@@ -8,14 +8,21 @@
 *.sln.docstates
 
 ## [كود لإهمال ملفات الإعدادات المحلية والحساسة]
-appsettings.json
+# ملفات البيئة - لا تضيفها إلى Git
+.env
+.env.local
+.env.*.local
+.env.prod
+.env.prod.local
+
+# ملفات appsettings الخاصة بالتطوير
 appsettings.Development.json
-RestaurantSystem.Api/appsettings.json
-RestaurantSystem.Api/appsettings.json
-RestaurantSystem.Api/appsettings.json
-RestaurantSystem.Api/appsettings.json
-RestaurantSystem.Api/appsettings.json
-*.json
-RestaurantSystem.Api/appsettings.json
-RestaurantSystem.Api/appsettings.json
-RestaurantSystem.Api/appsettings.json
+appsettings.*.json
+RestaurantSystem.Api/appsettings.Development.json
+
+# الملفات المؤقتة والـ Logs
+*.log
+logs/
+*.swp
+*.swo
+*~

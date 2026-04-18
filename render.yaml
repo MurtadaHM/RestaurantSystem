@@ -1,0 +1,97 @@
+services:
+  - type: web
+    name: restaurant-api
+    runtime: docker
+    
+    # GitHub Integration
+    repo: https://github.com/MurtadaHM/RestaurantSystem
+    branch: main
+    
+    # Docker Configuration
+    dockerfilePath: ./RestaurantSystem.Api/Dockerfile
+    docker:
+      command: dotnet RestaurantSystem.Api.dll
+    
+    # Port Configuration
+    port: 5183
+    
+    # Environment Variables (يجب تعيينها من لوحة التحكم)
+    envVars:
+      - key: DB_HOST
+        value: ${DATABASE_URL}
+        scope: build,runtime
+      - key: DB_PORT
+        value: "5432"
+        scope: build,runtime
+      - key: DB_NAME
+        value: restaurant_prod
+        scope: build,runtime
+      - key: DB_USER
+        value: ${DB_USER}
+        scope: build,runtime
+      - key: DB_PASSWORD
+        value: ${DB_PASSWORD}
+        scope: build,runtime
+      - key: JWT_KEY
+        value: ${JWT_KEY}
+        scope: runtime
+      - key: JWT_ISSUER
+        value: RestaurantSystem
+        scope: runtime
+      - key: JWT_AUDIENCE
+        value: RestaurantSystemUsers
+        scope: runtime
+      - key: JWT_EXPIRY_MINUTES
+        value: "1440"
+        scope: runtime
+      - key: CLAUDE_API_KEY
+        value: ${CLAUDE_API_KEY}
+        scope: runtime
+      - key: CLAUDE_MODEL
+        value: claude-3-haiku-20240307
+        scope: runtime
+      - key: CLAUDE_BASE_URL
+        value: https://api.anthropic.com/v1/
+        scope: runtime
+      - key: SENDY_BASE_URL
+        value: ${SENDY_BASE_URL}
+        scope: runtime
+      - key: SENDY_API_KEY
+        value: ${SENDY_API_KEY}
+        scope: runtime
+      - key: SENDY_WEBHOOK_SECRET
+        value: ${SENDY_WEBHOOK_SECRET}
+        scope: runtime
+      - key: TEAM6_ENABLED
+        value: "true"
+        scope: runtime
+      - key: TEAM6_BASE_URL
+        value: ${TEAM6_BASE_URL}
+        scope: runtime
+      - key: TEAM6_RESTAURANT_ID
+        value: ${TEAM6_RESTAURANT_ID}
+        scope: runtime
+      - key: TEAM6_POLLING_INTERVAL
+        value: "5"
+        scope: runtime
+      - key: TEAM6_FALLBACK_USER_ID
+        value: ${TEAM6_FALLBACK_USER_ID}
+        scope: runtime
+      - key: LOG_LEVEL
+        value: Warning
+        scope: runtime
+      - key: ASPNETCORE_ENVIRONMENT
+        value: Production
+        scope: runtime
+    
+    # Health Check
+    healthCheckPath: /swagger/index.html
+    
+    # Build Configuration
+    buildCommand: dotnet publish RestaurantSystem.sln -c Release -o app
+    
+    # Auto-deploy on push
+    autoDeploy: true
+    
+    # Limits (optional)
+    numInstances: 1

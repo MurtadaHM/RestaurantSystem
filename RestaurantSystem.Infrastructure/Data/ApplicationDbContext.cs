@@ -32,30 +32,45 @@ namespace RestaurantSystem.Infrastructure.Data
             // 1. تطبيق الإعدادات الفردية من الـ Configurations
             modelBuilder.ApplyConfigurationsFromAssembly(typeof(ApplicationDbContext).Assembly);
 
-            // 🚀 2. التأمين الشامل لجميع الـ Enums والتواريخ في النظام
+            // 2. التأمين الشامل لجميع الـ Enums والتواريخ في النظام
             foreach (var entityType in modelBuilder.Model.GetEntityTypes())
             {
                 foreach (var property in entityType.GetProperties())
                 {
                     var type = Nullable.GetUnderlyingType(property.ClrType) ?? property.ClrType;
 
-                    // ✅ حل مشكلة الـ Enums الديناميكي (بدون خطأ الـ object)
+                    // تحويل الـ Enums إلى string
                     if (type.IsEnum)
                     {
-                        // إنشاء محول خاص بنوع الـ Enum الحالي حصراً
                         var converterType = typeof(EnumToStringConverter<>).MakeGenericType(type);
-                        var converter = (ValueConverter)Activator.CreateInstance(converterType);
+                        var converter = (ValueConverter)Activator.CreateInstance(converterType)!;
 
                         property.SetValueConverter(converter);
-                        property.Sentinel = Activator.CreateInstance(type); // تصفير الـ Sentinel
+                        property.Sentinel = Activator.CreateInstance(type);
                     }
 
-                    // ✅ محول الوقت لـ PostgreSQL (UTC)
-                    if (property.ClrType == typeof(DateTime) || property.ClrType == typeof(DateTime?))
+                    // DateTime غير nullable
+                    if (property.ClrType == typeof(DateTime))
                     {
                         property.SetValueConverter(new ValueConverter<DateTime, DateTime>(
                             v => v.Kind == DateTimeKind.Utc ? v : DateTime.SpecifyKind(v, DateTimeKind.Utc),
                             v => v.Kind == DateTimeKind.Utc ? v : DateTime.SpecifyKind(v, DateTimeKind.Utc)));
+                    }
+
+                    // DateTime nullable
+                    if (property.ClrType == typeof(DateTime?))
+                    {
+                        property.SetValueConverter(new ValueConverter<DateTime?, DateTime?>(
+                            v => v.HasValue
+                                ? (v.Value.Kind == DateTimeKind.Utc
+                                    ? v
+                                    : DateTime.SpecifyKind(v.Value, DateTimeKind.Utc))
+                                : v,
+                            v => v.HasValue
+                                ? (v.Value.Kind == DateTimeKind.Utc
+                                    ? v
+                                    : DateTime.SpecifyKind(v.Value, DateTimeKind.Utc))
+                                : v));
                     }
                 }
 
@@ -64,9 +79,12 @@ namespace RestaurantSystem.Infrastructure.Data
                 {
                     var parameter = Expression.Parameter(entityType.ClrType, "e");
                     var filter = Expression.Lambda(
-                        Expression.Equal(Expression.Property(parameter, nameof(BaseEntity.IsDeleted)), Expression.Constant(false)),
+                        Expression.Equal(
+                            Expression.Property(parameter, nameof(BaseEntity.IsDeleted)),
+                            Expression.Constant(false)),
                         parameter
                     );
+
                     modelBuilder.Entity(entityType.ClrType).HasQueryFilter(filter);
                 }
             }
@@ -81,6 +99,7 @@ namespace RestaurantSystem.Infrastructure.Data
         private void UpdateTimestamps()
         {
             var entries = ChangeTracker.Entries<BaseEntity>();
+
             foreach (var entry in entries)
             {
                 if (entry.State == EntityState.Added)
@@ -88,10 +107,12 @@ namespace RestaurantSystem.Infrastructure.Data
                     entry.Entity.CreatedAt = DateTime.UtcNow;
                     entry.Entity.IsDeleted = false;
                 }
+
                 if (entry.State == EntityState.Modified)
                 {
                     entry.Entity.UpdatedAt = DateTime.UtcNow;
                 }
+
                 if (entry.State == EntityState.Deleted)
                 {
                     entry.State = EntityState.Modified;

@@ -1,0 +1,66 @@
+version: '3.8'
+
+services:
+  restaurantsystemapi:
+    image: restaurantsystem:prod
+    container_name: restaurant_api_prod
+    build:
+      context: .
+      dockerfile: RestaurantSystem.Api/Dockerfile
+      args:
+        configuration: Release
+    restart: unless-stopped
+    ports:
+      - "${API_PORT:-5183}:5183"
+    environment:
+      # Database - استخدم خادم خارجي
+      DB_HOST: ${DB_HOST}
+      DB_PORT: ${DB_PORT:-5432}
+      DB_NAME: ${DB_NAME}
+      DB_USER: ${DB_USER}
+      DB_PASSWORD: ${DB_PASSWORD}
+      
+      # JWT Configuration
+      JWT_KEY: ${JWT_KEY}
+      JWT_ISSUER: ${JWT_ISSUER}
+      JWT_AUDIENCE: ${JWT_AUDIENCE}
+      JWT_EXPIRY_MINUTES: ${JWT_EXPIRY_MINUTES}
+      
+      # Claude AI Configuration
+      CLAUDE_API_KEY: ${CLAUDE_API_KEY}
+      CLAUDE_MODEL: ${CLAUDE_MODEL}
+      CLAUDE_BASE_URL: ${CLAUDE_BASE_URL}
+      
+      # Sendy Configuration
+      SENDY_BASE_URL: ${SENDY_BASE_URL}
+      SENDY_API_KEY: ${SENDY_API_KEY}
+      SENDY_WEBHOOK_SECRET: ${SENDY_WEBHOOK_SECRET}
+      
+      # Team6 Integration
+      TEAM6_ENABLED: ${TEAM6_ENABLED}
+      TEAM6_BASE_URL: ${TEAM6_BASE_URL}
+      TEAM6_RESTAURANT_ID: ${TEAM6_RESTAURANT_ID}
+      TEAM6_POLLING_INTERVAL: ${TEAM6_POLLING_INTERVAL}
+      TEAM6_FALLBACK_USER_ID: ${TEAM6_FALLBACK_USER_ID}
+      
+      # Logging
+      LOG_LEVEL: ${LOG_LEVEL:-Warning}
+      ASPNETCORE_ENVIRONMENT: Production
+      
+    # Health check
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5183/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    
+    # Resource limits (اختياري)
+    # deploy:
+    #   resources:
+    #     limits:
+    #       cpus: '2'
+    #       memory: 2G
+    #     reservations:
+    #       cpus: '1'
+    #       memory: 1G
