@@ -86,8 +86,9 @@ namespace RestaurantSystem.Application.Mappings
 
                 .ForMember(dest => dest.LastPartnerSyncDate,
                     opt => opt.MapFrom(src => src.LastPartnerSyncDate))
+
                 .ForMember(dest => dest.PartnerUserId,
-    opt => opt.MapFrom(src => src.PartnerUserId))
+                    opt => opt.MapFrom(src => src.PartnerUserId))
 
                 // Relations
                 .ForMember(dest => dest.Items,
@@ -103,6 +104,17 @@ namespace RestaurantSystem.Application.Mappings
                         src.MenuItem != null
                             ? src.MenuItem.Name
                             : string.Empty))
+
+                .ForMember(dest => dest.DepartmentId,
+                    opt => opt.MapFrom(src => src.DepartmentId))
+
+                .ForMember(dest => dest.DepartmentName,
+                    opt => opt.MapFrom(src =>
+                        src.Department != null
+                            ? src.Department.Name
+                            : (src.MenuItem != null && src.MenuItem.Department != null
+                                ? src.MenuItem.Department.Name
+                                : string.Empty)))
 
                 .ForMember(dest => dest.Price,
                     opt => opt.MapFrom(src => src.Price))

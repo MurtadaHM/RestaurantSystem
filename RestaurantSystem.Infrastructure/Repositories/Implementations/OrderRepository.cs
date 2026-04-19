@@ -21,16 +21,23 @@ namespace RestaurantSystem.Infrastructure.Repositories.Implementations
                 .Include(o => o.Table)
                 .Include(o => o.OrderItems)
                     .ThenInclude(oi => oi.MenuItem)
+                        .ThenInclude(mi => mi.Department)
+                .Include(o => o.OrderItems)
+                    .ThenInclude(oi => oi.Department)
                 .Where(o => o.Status == OrderStatus.Pending && !o.IsDeleted)
                 .OrderBy(o => o.CreatedAt)
                 .ToListAsync();
         }
 
-        // 2️⃣ البحث عن طريق المعرف الخارجي (مهم جداً لربط سندي والـ Webhooks)
+        // 2️⃣ البحث عن طريق المعرف الخارجي
         public async Task<Order?> GetByExternalIdAsync(Guid externalId)
         {
             return await _dbSet
                 .Include(o => o.OrderItems)
+                    .ThenInclude(oi => oi.MenuItem)
+                        .ThenInclude(mi => mi.Department)
+                .Include(o => o.OrderItems)
+                    .ThenInclude(oi => oi.Department)
                 .Include(o => o.User)
                 .FirstOrDefaultAsync(o => o.ExternalOrderId == externalId && !o.IsDeleted);
         }
@@ -47,7 +54,6 @@ namespace RestaurantSystem.Infrastructure.Repositories.Implementations
                 if (!string.IsNullOrEmpty(courierName)) order.CourierName = courierName;
                 if (!string.IsNullOrEmpty(courierPhone)) order.CourierPhoneNumber = courierPhone;
 
-                // إذا وصل السائق للعميل أو سلم الطلب، نحدث الحالة الداخلية تلقائياً
                 if (status == DeliveryPartnerStatus.Delivered)
                 {
                     order.Status = OrderStatus.Completed;
@@ -81,21 +87,25 @@ namespace RestaurantSystem.Infrastructure.Repositories.Implementations
             return await _dbSet
                 .Include(o => o.OrderItems)
                     .ThenInclude(oi => oi.MenuItem)
+                        .ThenInclude(mi => mi.Department)
+                .Include(o => o.OrderItems)
+                    .ThenInclude(oi => oi.Department)
                 .Include(o => o.User)
                 .Include(o => o.Table)
                 .Include(o => o.Payment)
                 .FirstOrDefaultAsync(o => o.Id == orderId && !o.IsDeleted);
         }
 
-        // 🔥 الميثود الجديدة لخدمة نظام المخزن (Deep Eager Loading)
+        // لخدمة المخزن
         public async Task<Order?> GetOrderWithDetailsForInventoryAsync(Guid orderId)
         {
             return await _dbSet
                 .Include(o => o.OrderItems)
                     .ThenInclude(oi => oi.MenuItem)
-                        // ⬇️ هنا نضع علامة ! بعد mi و mii
                         .ThenInclude(mi => mi!.MenuItemIngredients)
                             .ThenInclude(mii => mii!.Ingredient)
+                .Include(o => o.OrderItems)
+                    .ThenInclude(oi => oi.Department)
                 .FirstOrDefaultAsync(o => o.Id == orderId && !o.IsDeleted);
         }
 
@@ -118,6 +128,11 @@ namespace RestaurantSystem.Infrastructure.Repositories.Implementations
         {
             return await _dbSet
                 .AsNoTracking()
+                .Include(o => o.OrderItems)
+                    .ThenInclude(oi => oi.MenuItem)
+                        .ThenInclude(mi => mi.Department)
+                .Include(o => o.OrderItems)
+                    .ThenInclude(oi => oi.Department)
                 .Where(o => o.UserId == userId && !o.IsDeleted)
                 .OrderByDescending(o => o.CreatedAt)
                 .ToListAsync();
@@ -128,6 +143,10 @@ namespace RestaurantSystem.Infrastructure.Repositories.Implementations
             return await _dbSet
                 .AsNoTracking()
                 .Include(o => o.OrderItems)
+                    .ThenInclude(oi => oi.MenuItem)
+                        .ThenInclude(mi => mi.Department)
+                .Include(o => o.OrderItems)
+                    .ThenInclude(oi => oi.Department)
                 .Where(o => o.TableId == tableId && !o.IsDeleted)
                 .OrderByDescending(o => o.CreatedAt)
                 .ToListAsync();
@@ -148,8 +167,12 @@ namespace RestaurantSystem.Infrastructure.Repositories.Implementations
                 .AsNoTracking()
                 .Include(o => o.OrderItems)
                     .ThenInclude(oi => oi.MenuItem)
+                        .ThenInclude(mi => mi.Department)
+                .Include(o => o.OrderItems)
+                    .ThenInclude(oi => oi.Department)
                 .Include(o => o.User)
                 .Include(o => o.Table)
+                .Include(o => o.Payment)
                 .Where(o => !o.IsDeleted)
                 .OrderByDescending(o => o.CreatedAt)
                 .ToListAsync();
@@ -169,6 +192,7 @@ namespace RestaurantSystem.Infrastructure.Repositories.Implementations
                         item.DeletedAt = now;
                     }
                 }
+
                 order.IsDeleted = true;
                 order.DeletedAt = now;
                 await UpdateAsync(order);
@@ -181,12 +205,17 @@ namespace RestaurantSystem.Infrastructure.Repositories.Implementations
                 .AsNoTracking()
                 .Include(o => o.Table)
                 .Include(o => o.OrderItems)
+                    .ThenInclude(oi => oi.MenuItem)
+                        .ThenInclude(mi => mi.Department)
+                .Include(o => o.OrderItems)
+                    .ThenInclude(oi => oi.Department)
                 .Include(o => o.Payment)
                 .FirstOrDefaultAsync(o =>
                     o.PartnerOrderId == partnerOrderId &&
                     o.PartnerSource == partnerSource &&
                     !o.IsDeleted);
         }
+
         public async Task<IEnumerable<Order>> GetActivePartnerOrdersAsync(string partnerSource)
         {
             return await _dbSet

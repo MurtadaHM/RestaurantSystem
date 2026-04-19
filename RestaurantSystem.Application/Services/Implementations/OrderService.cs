@@ -70,9 +70,16 @@ namespace RestaurantSystem.Application.Services.Implementations
                 if (menuItem == null)
                     throw new Exception($"المنتج {item.MenuItemId} غير موجود");
 
+                if (!menuItem.IsAvailable)
+                    throw new Exception($"المنتج {menuItem.Name} غير متاح حالياً");
+
+                if (menuItem.DepartmentId == Guid.Empty)
+                    throw new Exception($"المنتج {menuItem.Name} غير مربوط بأي قسم");
+
                 order.OrderItems.Add(new OrderItem
                 {
                     MenuItemId = item.MenuItemId,
+                    DepartmentId = menuItem.DepartmentId,
                     Quantity = item.Quantity,
                     Price = menuItem.Price,
                     SpecialInstructions = item.SpecialInstructions ?? string.Empty,
@@ -98,7 +105,40 @@ namespace RestaurantSystem.Application.Services.Implementations
             }
 
             var response = _mapper.Map<OrderResponseDto>(order);
-            await _notificationService.NotifyNewOrderAsync(response);
+
+           // 1. إشعار عام للكاشير/المدير
+await _notificationService.NotifyNewOrderAsync(response);
+
+// 2. 🔥 توزيع الطلب حسب الأقسام (المهم)
+var grouped = order.OrderItems.GroupBy(x => x.DepartmentId);
+
+foreach (var group in grouped)
+{
+    var departmentId = group.Key.ToString();
+
+    var items = group.Select(i => new
+    {
+        i.MenuItemId,
+        i.Quantity,
+        i.Price,
+        i.SpecialInstructions
+    }).ToList();
+
+    // إرسال فقط العناصر الخاصة بهذا القسم
+    await _notificationService.NotifyDepartmentAsync(departmentId, new
+    {
+        OrderId = order.Id,
+        OrderNumber = order.OrderNumber,
+        Items = items
+    });
+
+    // Log حتى تتأكد يشتغل
+    _logger.LogInformation(
+        "🚀 تم إرسال {Count} عناصر إلى القسم {DeptId} للطلب #{OrderNo}",
+        items.Count,
+        departmentId,
+        order.OrderNumber);
+}
 
             return response;
         }

@@ -6,9 +6,6 @@ MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "RestaurantSystem.Api", "RestaurantSystem.Api\RestaurantSystem.Api.csproj", "{57B69DED-F6DC-4A3A-A0B2-7C31F3D5DD72}"
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "src", "src", "{02EA681E-C7D8-13C7-8484-4AC65E1B71E8}"
-	ProjectSection(SolutionItems) = preProject
-		RestaurantSystem.Api\Controllers\AuthController.cs = RestaurantSystem.Api\Controllers\AuthController.cs
-	EndProjectSection
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "RestaurantSystem.Domain", "RestaurantSystem.Domain\RestaurantSystem.Domain.csproj", "{FA6DEA34-E705-4C4D-8863-F38E7A855C95}"
 EndProject

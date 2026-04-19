@@ -29,16 +29,9 @@ namespace RestaurantSystem.Application.DTOs.Orders
         public DateTime CreatedAt { get; set; }
         public DateTime? CompletedAt { get; set; }
 
-        // ──────────────────────────────────────────────────────────
         // Sendy Integration
-        // ──────────────────────────────────────────────────────────
-
-        /// <summary>المعرف الخارجي الداخلي للطلب في Sendy</summary>
         public Guid? ExternalOrderId { get; set; }
-
-        /// <summary>المعرف العام الخارجي القادم من Sendy مثل ORD-20260410-XXXXX</summary>
         public string? ExternalPublicId { get; set; }
-
         public string ExternalDeliveryStatus { get; set; } = string.Empty;
         public bool IsSyncedToExternalProvider { get; set; }
 
@@ -50,23 +43,15 @@ namespace RestaurantSystem.Application.DTOs.Orders
 
         public string? CourierName { get; set; }
         public string? CourierPhoneNumber { get; set; }
-
-        /// <summary>رابط التتبع الخارجي إن توفر من Sendy</summary>
         public string? TrackingUrl { get; set; }
-
-        /// <summary>آخر وقت مزامنة مع Sendy</summary>
         public DateTime? LastExternalSyncDate { get; set; }
 
-        // ──────────────────────────────────────────────────────────
         // Team 6 Integration
-        // ──────────────────────────────────────────────────────────
         public string? PartnerUserId { get; set; }
         public string? PartnerOrderId { get; set; }
         public string? PartnerSource { get; set; }
         public string? PartnerRestaurantId { get; set; }
         public DateTime? LastPartnerSyncDate { get; set; }
-
-        // ──────────────────────────────────────────────────────────
 
         public List<OrderItemResponseDto> Items { get; set; } = new();
 
@@ -81,6 +66,11 @@ namespace RestaurantSystem.Application.DTOs.Orders
         public Guid Id { get; set; }
         public Guid MenuItemId { get; set; }
         public string MenuItemName { get; set; } = string.Empty;
+
+        // 🔥 الجديد: معلومات القسم
+        public Guid DepartmentId { get; set; }
+        public string DepartmentName { get; set; } = string.Empty;
+
         public int Quantity { get; set; }
         public decimal Price { get; set; }
         public decimal TotalPrice => Price * Quantity;
@@ -96,6 +86,5 @@ namespace RestaurantSystem.Application.DTOs.Orders
         public string PaymentMethod { get; set; } = string.Empty;
         public string TransactionReference { get; set; } = string.Empty;
         public DateTime CreatedAt { get; set; }
-
     }
 }
