@@ -210,5 +210,4 @@ using (var scope = app.Services.CreateScope())
         logger.LogError(ex, "❌ Database initialization failed.");
     }
 }
-
 app.Run();
