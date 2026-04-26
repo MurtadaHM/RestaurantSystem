@@ -4,29 +4,65 @@ using RestaurantSystem.Domain.Entities;
 
 namespace RestaurantSystem.Application.Mappings
 {
-    // ✅ تغيير الوصول إلى public والوراثة من Profile
     public class InventoryMappingProfile : Profile
     {
         public InventoryMappingProfile()
         {
-            // 1️⃣ من Ingredient (Entity) إلى IngredientResponseDto (للعرض)
+            // 1️⃣ Ingredient -> IngredientResponseDto
             CreateMap<Ingredient, IngredientResponseDto>()
-                .ForMember(dest => dest.Unit, opt => opt.MapFrom(src => src.Unit.ToString()));
+                .ForMember(dest => dest.Unit,
+                    opt => opt.MapFrom(src => src.Unit.ToString()));
 
-            // 2️⃣ من CreateIngredientRequestDto إلى Ingredient (للحفظ أول مرة)
+            // 2️⃣ CreateIngredientRequestDto -> Ingredient
             CreateMap<CreateIngredientRequestDto, Ingredient>()
-                .ForMember(dest => dest.CurrentStock, opt => opt.MapFrom(src => src.InitialStock));
+                .ForMember(dest => dest.CurrentStock,
+                    opt => opt.MapFrom(src => src.InitialStock));
 
-            // 3️⃣ خرائط الوصفة (MenuItemIngredient)
+            // 3️⃣ MenuItemIngredient -> MenuItemIngredientDto
             CreateMap<MenuItemIngredient, MenuItemIngredientDto>()
-                .ForMember(dest => dest.IngredientName, opt => opt.MapFrom(src => src.Ingredient!.Name));
+                .ForMember(dest => dest.IngredientName,
+                    opt => opt.MapFrom(src =>
+                        src.Ingredient != null ? src.Ingredient.Name : string.Empty))
 
-            CreateMap<MenuItemIngredientDto, MenuItemIngredient>();
+                // الوحدة للعرض فقط من Ingredient، مو مخزونة بالوصفة
+                .ForMember(dest => dest.Unit,
+                    opt => opt.MapFrom(src =>
+                        src.Ingredient != null ? src.Ingredient.Unit.ToString() : string.Empty))
 
-            // 4️⃣ خرائط حركات المخزن (StockMovements)
+                .ForMember(dest => dest.Notes,
+                    opt => opt.MapFrom(src => src.Notes))
+
+                .ForMember(dest => dest.IsOptional,
+                    opt => opt.MapFrom(src => src.IsOptional))
+
+                .ForMember(dest => dest.WastePercentage,
+                    opt => opt.MapFrom(src => src.WastePercentage));
+
+            // 4️⃣ MenuItemIngredientDto -> MenuItemIngredient
+            CreateMap<MenuItemIngredientDto, MenuItemIngredient>()
+                .ForMember(dest => dest.Ingredient,
+                    opt => opt.Ignore())
+
+                .ForMember(dest => dest.MenuItem,
+                    opt => opt.Ignore())
+
+                .ForMember(dest => dest.Notes,
+                    opt => opt.MapFrom(src => src.Notes))
+
+                .ForMember(dest => dest.IsOptional,
+                    opt => opt.MapFrom(src => src.IsOptional))
+
+                .ForMember(dest => dest.WastePercentage,
+                    opt => opt.MapFrom(src => src.WastePercentage));
+
+            // 5️⃣ StockMovement -> StockMovementResponseDto
             CreateMap<StockMovement, StockMovementResponseDto>()
-                .ForMember(dest => dest.IngredientName, opt => opt.MapFrom(src => src.Ingredient!.Name))
-                .ForMember(dest => dest.MovementType, opt => opt.MapFrom(src => src.Type.ToString()));
+                .ForMember(dest => dest.IngredientName,
+                    opt => opt.MapFrom(src =>
+                        src.Ingredient != null ? src.Ingredient.Name : string.Empty))
+
+                .ForMember(dest => dest.MovementType,
+                    opt => opt.MapFrom(src => src.Type.ToString()));
         }
     }
 }

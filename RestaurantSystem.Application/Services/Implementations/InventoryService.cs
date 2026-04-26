@@ -91,7 +91,13 @@ namespace RestaurantSystem.Application.Services.Implementations
                         MenuItemId = menuItemId,
                         IngredientId = item.IngredientId,
                         Quantity = item.Quantity,
-                        CreatedAt = DateTime.UtcNow
+                        CreatedAt = DateTime.UtcNow,
+
+
+                        Notes = item.Notes,
+                        IsOptional = item.IsOptional,
+                        WastePercentage = item.WastePercentage
+                      
                     };
                     await _ingredientRepo.AddRecipeItemAsync(mapping);
                 }
