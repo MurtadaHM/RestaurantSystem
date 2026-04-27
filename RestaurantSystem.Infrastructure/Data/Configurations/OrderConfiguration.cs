@@ -46,6 +46,12 @@ namespace RestaurantSystem.Infrastructure.Data.Configurations
             builder.Property(o => o.SpecialNotes)
                 .HasMaxLength(500);
 
+            // NEW: IsStockDeducted flag for inventory deduction protection
+            builder.Property(o => o.IsStockDeducted)
+                .IsRequired()
+                .HasColumnType("boolean")
+                .HasDefaultValue(false);
+
             // 4. 🆕 حقول التكامل مع شركة التوصيل (Sendy) والإحداثيات
             builder.Property(o => o.ExternalOrderId)
                 .HasColumnType("uuid");

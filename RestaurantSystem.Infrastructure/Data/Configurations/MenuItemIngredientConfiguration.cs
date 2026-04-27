@@ -10,66 +10,31 @@ namespace RestaurantSystem.Infrastructure.Data.Configurations
         {
             builder.ToTable("MenuItemIngredients");
 
-            // 1. Primary Key من BaseEntity
-            builder.HasKey(mi => mi.Id);
+            // 1. 🛠️ ضبط المفتاح المركب (Composite Key)
+            builder.HasKey(mi => new { mi.MenuItemId, mi.IngredientId });
 
-            builder.Property(mi => mi.Id)
-                .HasColumnType("uuid");
+            // 2. إعدادات الحقول
+            builder.Property(mi => mi.MenuItemId).HasColumnType("uuid");
+            builder.Property(mi => mi.IngredientId).HasColumnType("uuid");
 
-            // 2. منع تكرار نفس المادة داخل نفس الوصفة
-            builder.HasIndex(mi => new { mi.MenuItemId, mi.IngredientId })
-                .IsUnique()
-                .HasDatabaseName("IX_MenuItemIngredients_MenuItemId_IngredientId");
-
-            // 3. إعدادات الحقول الأساسية
-            builder.Property(mi => mi.MenuItemId)
-                .HasColumnType("uuid")
-                .IsRequired();
-
-            builder.Property(mi => mi.IngredientId)
-                .HasColumnType("uuid")
-                .IsRequired();
-
+            // تحديد دقة الكمية المطلوبة (مثلاً 0.250 كغم)
             builder.Property(mi => mi.Quantity)
                 .IsRequired()
-                .HasColumnType("numeric(18,3)");
+                .HasColumnType("numeric(18,3)"); // 👈 تحديد النوع لـ Postgres بدقة
 
-            // 4. الحقول الجديدة للوصفة
-            builder.Property(mi => mi.Notes)
-                .HasMaxLength(500);
+            // 3. العلاقات (Relationships)
 
-            builder.Property(mi => mi.IsOptional)
-                .HasColumnType("boolean")
-                .HasDefaultValue(false);
-
-            builder.Property(mi => mi.WastePercentage)
-                .HasColumnType("numeric(5,2)")
-                .HasDefaultValue(0);
-
-            // 5. خصائص BaseEntity
-            builder.Property(mi => mi.IsDeleted)
-                .HasColumnType("boolean");
-
-            builder.Property(mi => mi.CreatedAt)
-                .IsRequired()
-                .HasColumnType("timestamp with time zone");
-
-            builder.Property(mi => mi.UpdatedAt)
-                .HasColumnType("timestamp with time zone");
-
-            builder.Property(mi => mi.DeletedAt)
-                .HasColumnType("timestamp with time zone");
-
-            // 6. العلاقات
+            // MenuItem ← MenuItemIngredients
             builder.HasOne(mi => mi.MenuItem)
                 .WithMany(m => m.MenuItemIngredients)
                 .HasForeignKey(mi => mi.MenuItemId)
-                .OnDelete(DeleteBehavior.Cascade);
+                .OnDelete(DeleteBehavior.Cascade); // إذا انحذف الطبق، تنحذف مكوناته من الربط
 
+            // Ingredient ← MenuItemIngredients
             builder.HasOne(mi => mi.Ingredient)
                 .WithMany(i => i.MenuItemIngredients)
                 .HasForeignKey(mi => mi.IngredientId)
-                .OnDelete(DeleteBehavior.Restrict);
+                .OnDelete(DeleteBehavior.Restrict); // نمنع حذف المادة الأساسية إذا كانت داخلة بوصفة
         }
     }
 }

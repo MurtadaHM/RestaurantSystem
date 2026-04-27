@@ -20,6 +20,11 @@ namespace RestaurantSystem.Domain.Entities
         public DateTime? ExpectedReadyTime { get; set; }
         public DateTime? CompletedAt { get; set; }
 
+        /// <summary>
+        /// Flag: prevents double deduction of inventory when stock deduction logic is applied multiple times
+        /// </summary>
+        public bool IsStockDeducted { get; set; } = false;
+
         // ──────────────────────────────────────────────────────────
         // Sendy Integration
         // ──────────────────────────────────────────────────────────
@@ -65,9 +70,6 @@ namespace RestaurantSystem.Domain.Entities
         public Table? Table { get; set; }
         public ICollection<OrderItem> OrderItems { get; set; } = new List<OrderItem>();
         public Payment? Payment { get; set; }
-
-
-
 
         // ──────────────────────────────────────────────────────────
         // Team 6

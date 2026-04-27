@@ -7,6 +7,7 @@ using RestaurantSystem.Application.DTOs.Orders;
 using RestaurantSystem.Application.Services.Interfaces;
 using RestaurantSystem.Domain.Entities;
 using RestaurantSystem.Domain.Enums;
+using RestaurantSystem.Domain.Exceptions;
 
 namespace RestaurantSystem.Application.Services.Implementations
 {
@@ -91,54 +92,43 @@ namespace RestaurantSystem.Application.Services.Implementations
 
             await _orderRepository.AddAsync(order);
 
-            try
-            {
-                await _inventoryService.ProcessOrderStockDeductionAsync(order.Id);
-                _logger.LogInformation("✅ تم استقطاع المكونات بنجاح للطلب #{OrderNo}", order.OrderNumber);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogWarning(
-                    "⚠️ تحذير: فشل استقطاع المخزن للطلب #{OrderNo}: {Msg}",
-                    order.OrderNumber,
-                    ex.Message);
-            }
+            // ملاحظة:
+            // لا يتم خصم المخزون هنا.
+            // الخصم يتم فقط عند انتقال الطلب إلى Confirmed داخل UpdateOrderStatusAsync.
 
             var response = _mapper.Map<OrderResponseDto>(order);
 
-           // 1. إشعار عام للكاشير/المدير
-await _notificationService.NotifyNewOrderAsync(response);
+            // 1. إشعار عام للكاشير/المدير
+            await _notificationService.NotifyNewOrderAsync(response);
 
-// 2. 🔥 توزيع الطلب حسب الأقسام (المهم)
-var grouped = order.OrderItems.GroupBy(x => x.DepartmentId);
+            // 2. توزيع الطلب حسب الأقسام
+            var grouped = order.OrderItems.GroupBy(x => x.DepartmentId);
 
-foreach (var group in grouped)
-{
-    var departmentId = group.Key.ToString();
+            foreach (var group in grouped)
+            {
+                var departmentId = group.Key.ToString();
 
-    var items = group.Select(i => new
-    {
-        i.MenuItemId,
-        i.Quantity,
-        i.Price,
-        i.SpecialInstructions
-    }).ToList();
+                var items = group.Select(i => new
+                {
+                    i.MenuItemId,
+                    i.Quantity,
+                    i.Price,
+                    i.SpecialInstructions
+                }).ToList();
 
-    // إرسال فقط العناصر الخاصة بهذا القسم
-    await _notificationService.NotifyDepartmentAsync(departmentId, new
-    {
-        OrderId = order.Id,
-        OrderNumber = order.OrderNumber,
-        Items = items
-    });
+                await _notificationService.NotifyDepartmentAsync(departmentId, new
+                {
+                    OrderId = order.Id,
+                    OrderNumber = order.OrderNumber,
+                    Items = items
+                });
 
-    // Log حتى تتأكد يشتغل
-    _logger.LogInformation(
-        "🚀 تم إرسال {Count} عناصر إلى القسم {DeptId} للطلب #{OrderNo}",
-        items.Count,
-        departmentId,
-        order.OrderNumber);
-}
+                _logger.LogInformation(
+                    "🚀 تم إرسال {Count} عناصر إلى القسم {DeptId} للطلب #{OrderNo}",
+                    items.Count,
+                    departmentId,
+                    order.OrderNumber);
+            }
 
             return response;
         }
@@ -148,6 +138,26 @@ foreach (var group in grouped)
             var order = await _orderRepository.GetOrderWithDetailsAsync(id);
             if (order == null)
                 throw new Exception("الطلب غير موجود");
+
+            // خصم المخزون فقط عند التحول إلى Confirmed
+            if (request.NewStatus == OrderStatus.Confirmed)
+            {
+                try
+                {
+                    await _inventoryService.ProcessOrderStockDeductionAsync(order.Id);
+                    _logger.LogInformation("✅ تم استقطاع المكونات بنجاح للطلب #{OrderNo}", order.OrderNumber);
+                }
+                catch (ValidationException vex)
+                {
+                    // لا نغير الحالة إذا المخزون غير كافٍ
+                    _logger.LogWarning(
+                        "⚠️ فشل استقطاع المخزن للطلب #{OrderNo}: {Msg}",
+                        order.OrderNumber,
+                        vex.Message);
+
+                    throw;
+                }
+            }
 
             order.Status = request.NewStatus;
 

@@ -229,52 +229,42 @@ namespace RestaurantSystem.Infrastructure.Migrations
 
             modelBuilder.Entity("RestaurantSystem.Domain.Entities.MenuItemIngredient", b =>
                 {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
+                    b.Property<Guid>("MenuItemId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("IngredientId")
                         .HasColumnType("uuid");
 
                     b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("timestamp with time zone");
+                        .HasColumnType("timestamp without time zone");
 
                     b.Property<DateTime?>("DeletedAt")
-                        .HasColumnType("timestamp with time zone");
+                        .HasColumnType("timestamp without time zone");
 
-                    b.Property<Guid>("IngredientId")
+                    b.Property<Guid>("Id")
                         .HasColumnType("uuid");
 
                     b.Property<bool>("IsDeleted")
                         .HasColumnType("boolean");
 
                     b.Property<bool>("IsOptional")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("boolean")
-                        .HasDefaultValue(false);
-
-                    b.Property<Guid>("MenuItemId")
-                        .HasColumnType("uuid");
+                        .HasColumnType("boolean");
 
                     b.Property<string>("Notes")
-                        .HasMaxLength(500)
-                        .HasColumnType("character varying(500)");
+                        .HasColumnType("text");
 
                     b.Property<decimal>("Quantity")
                         .HasColumnType("numeric(18,3)");
 
                     b.Property<DateTime?>("UpdatedAt")
-                        .HasColumnType("timestamp with time zone");
+                        .HasColumnType("timestamp without time zone");
 
                     b.Property<decimal>("WastePercentage")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("numeric(5,2)")
-                        .HasDefaultValue(0m);
+                        .HasColumnType("numeric");
 
-                    b.HasKey("Id");
+                    b.HasKey("MenuItemId", "IngredientId");
 
                     b.HasIndex("IngredientId");
-
-                    b.HasIndex("MenuItemId", "IngredientId")
-                        .IsUnique()
-                        .HasDatabaseName("IX_MenuItemIngredients_MenuItemId_IngredientId");
 
                     b.ToTable("MenuItemIngredients", (string)null);
                 });
@@ -328,6 +318,11 @@ namespace RestaurantSystem.Infrastructure.Migrations
 
                     b.Property<bool>("IsDeleted")
                         .HasColumnType("boolean");
+
+                    b.Property<bool>("IsStockDeducted")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false);
 
                     b.Property<bool>("IsSyncedToExternalProvider")
                         .HasColumnType("boolean");
