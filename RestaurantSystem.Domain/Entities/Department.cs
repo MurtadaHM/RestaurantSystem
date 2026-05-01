@@ -12,10 +12,10 @@ namespace RestaurantSystem.Domain.Entities
 
         public DepartmentStatus Status { get; set; } = DepartmentStatus.Active;
 
-        // الربط مع المنيو (العلاقة: القسم الواحد يحتوي على عدة أصناف)
+        // الربط مع المنيو
         public virtual ICollection<MenuItem> MenuItems { get; set; } = new List<MenuItem>();
 
-        // الربط مع تذاكر الطلبات (لأجل شاشة الشيف)
-        // public virtual ICollection<OrderTicket> OrderTickets { get; set; }
+        // الربط مع تقدم الأقسام داخل الطلبات
+        public virtual ICollection<OrderDepartmentProgress> OrderDepartmentProgresses { get; set; } = new List<OrderDepartmentProgress>();
     }
 }

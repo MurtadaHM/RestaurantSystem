@@ -27,8 +27,6 @@ namespace RestaurantSystem.Api.Controllers
             _logger = logger;
         }
 
-        // 1. جلب كل الطلبات
-        // تم السماح للكاشير والويتر حتى يقدرون يعرضون الطلبات في الواجهة
         [Authorize(Roles = "Admin,Manager,Cashier,Waiter")]
         [HttpGet]
         public async Task<ActionResult<ApiResponse<IEnumerable<OrderResponseDto>>>> GetAllOrders()
@@ -37,7 +35,6 @@ namespace RestaurantSystem.Api.Controllers
             return Ok(ApiResponse<IEnumerable<OrderResponseDto>>.Ok(orders));
         }
 
-        // 2. جلب تفاصيل طلب بالـ GUID
         [Authorize]
         [HttpGet("{id:guid}")]
         public async Task<ActionResult<ApiResponse<OrderResponseDto>>> GetOrderById(Guid id)
@@ -49,7 +46,6 @@ namespace RestaurantSystem.Api.Controllers
             return Ok(ApiResponse<OrderResponseDto>.Ok(order));
         }
 
-        // 3. البحث برقم الطلب البسيط
         [Authorize]
         [HttpGet("number/{orderNumber:int}")]
         public async Task<ActionResult<ApiResponse<OrderResponseDto>>> GetOrderByNumber(int orderNumber)
@@ -61,7 +57,6 @@ namespace RestaurantSystem.Api.Controllers
             return Ok(ApiResponse<OrderResponseDto>.Ok(order));
         }
 
-        // 4. جلب طلبات مستخدم معين
         [Authorize]
         [HttpGet("user/{userId}")]
         public async Task<ActionResult<ApiResponse<IEnumerable<OrderResponseDto>>>> GetUserOrders(string userId)
@@ -70,7 +65,6 @@ namespace RestaurantSystem.Api.Controllers
             return Ok(ApiResponse<IEnumerable<OrderResponseDto>>.Ok(orders));
         }
 
-        // 5. إنشاء طلب جديد
         [Authorize]
         [HttpPost]
         public async Task<ActionResult<ApiResponse<OrderResponseDto>>> CreateOrder([FromBody] CreateOrderRequestDto request)
@@ -94,8 +88,7 @@ namespace RestaurantSystem.Api.Controllers
             }
         }
 
-        // 6. تحديث الحالة
-        [Authorize(Roles = "Admin,Manager,Staff,Cashier,Waiter")]
+        [Authorize(Roles = "Admin,Manager,Cashier,Waiter")]
         [HttpPatch("{id:guid}/status")]
         public async Task<ActionResult<ApiResponse<OrderResponseDto>>> UpdateOrderStatus(Guid id, [FromBody] UpdateOrderStatusRequestDto request)
         {
@@ -110,7 +103,40 @@ namespace RestaurantSystem.Api.Controllers
             }
         }
 
-        // 7. إرسال الطلب لشركة التوصيل يدوياً
+        // NEW: جلب تقدم الأقسام داخل الطلب
+        [Authorize]
+        [HttpGet("{id:guid}/department-progress")]
+        public async Task<ActionResult<ApiResponse<IEnumerable<OrderDepartmentProgressDto>>>> GetOrderDepartmentProgress(Guid id)
+        {
+            try
+            {
+                var result = await _orderService.GetOrderDepartmentProgressAsync(id);
+                return Ok(ApiResponse<IEnumerable<OrderDepartmentProgressDto>>.Ok(result));
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(ApiResponse<IEnumerable<OrderDepartmentProgressDto>>.Fail(ex.Message));
+            }
+        }
+
+        // NEW: تحديث حالة قسم داخل الطلب
+        [Authorize(Roles = "Admin,Manager,Cashier,Waiter,Chef,Barista")]
+        [HttpPatch("{id:guid}/department-status")]
+        public async Task<ActionResult<ApiResponse<OrderDepartmentProgressDto>>> UpdateOrderDepartmentStatus(
+            Guid id,
+            [FromBody] UpdateOrderDepartmentStatusRequestDto request)
+        {
+            try
+            {
+                var result = await _orderService.UpdateOrderDepartmentStatusAsync(id, request);
+                return Ok(ApiResponse<OrderDepartmentProgressDto>.Ok(result, "تم تحديث حالة القسم بنجاح"));
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(ApiResponse<OrderDepartmentProgressDto>.Fail(ex.Message));
+            }
+        }
+
         [Authorize(Roles = "Admin,Manager")]
         [HttpPost("{id:guid}/push-external")]
         public async Task<ActionResult<ApiResponse<bool>>> PushToDelivery(Guid id)
@@ -122,7 +148,6 @@ namespace RestaurantSystem.Api.Controllers
             return Ok(ApiResponse<bool>.Ok(true, "تم إرسال الطلب لشركة التوصيل بنجاح"));
         }
 
-        // 8. مزامنة فورية لحالة التوصيل
         [Authorize]
         [HttpPost("{id:guid}/sync-delivery")]
         public async Task<ActionResult<ApiResponse<OrderResponseDto>>> SyncDeliveryStatus(Guid id)
@@ -131,7 +156,6 @@ namespace RestaurantSystem.Api.Controllers
             return Ok(ApiResponse<OrderResponseDto>.Ok(result, "تمت مزامنة البيانات مع شركة التوصيل"));
         }
 
-        // 9. إلغاء الطلب
         [Authorize]
         [HttpPost("{id:guid}/cancel")]
         public async Task<ActionResult<ApiResponse<object>>> CancelOrder(Guid id)
@@ -142,7 +166,6 @@ namespace RestaurantSystem.Api.Controllers
                 : BadRequest(ApiResponse<object>.Fail("لا يمكن إلغاء الطلب في حالته الحالية"));
         }
 
-        // 10. إحصائيات لوحة التحكم
         [Authorize(Roles = "Admin,Manager")]
         [HttpGet("stats")]
         public async Task<ActionResult<ApiResponse<object>>> GetOrderStats()

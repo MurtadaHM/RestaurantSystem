@@ -34,10 +34,11 @@ namespace RestaurantSystem.Infrastructure.Data.Configurations
                 .HasColumnType("text");
             // ❌ تم حذف .HasDefaultValue لمنع خطأ EF8
 
-            // 3. التواقيت (تأكد من استخدام timestamp with time zone لنجاح الـ Seed)
+            // 3. التواقيت
+            // Keep other timestamps as timestamptz; store reservation time as local wall-clock time
             builder.Property(r => r.ReservationDate)
                 .IsRequired()
-                .HasColumnType("timestamp with time zone");
+                .HasColumnType("timestamp without time zone");
 
             builder.Property(r => r.CreatedAt)
                 .IsRequired()

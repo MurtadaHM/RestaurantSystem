@@ -44,32 +44,34 @@ namespace RestaurantSystem.Infrastructure.Repositories.Implementations
             await _context.SaveChangesAsync();
         }
 
-        // ============================================================
-        // 🔥 الوظائف الجديدة المضافة لحل أخطاء الـ Build وتفعيل الوصفات
-        // ============================================================
-
-        // 1. جلب مكونات طبق معين (من جدول الربط)
         public async Task<IEnumerable<MenuItemIngredient>> GetRecipeByMenuItemIdInternalAsync(Guid menuItemId)
         {
             return await _context.MenuItemIngredients
-                .Where(mi => mi.MenuItemId == menuItemId)
+                .IgnoreQueryFilters()
+                .Where(mi => mi.MenuItemId == menuItemId && !mi.IsDeleted)
+                .OrderBy(mi => mi.Id)
                 .ToListAsync();
         }
 
-        // 2. إضافة عنصر جديد للوصفة
         public async Task AddRecipeItemAsync(MenuItemIngredient item)
         {
             await _context.MenuItemIngredients.AddAsync(item);
         }
 
-        // 3. مسح مجموعة من العناصر (تُستخدم عند تحديث الوصفة لمسح القديم)
         public async Task RemoveRangeAsync(IEnumerable<MenuItemIngredient> entities)
         {
             _context.MenuItemIngredients.RemoveRange(entities);
-            await Task.CompletedTask; // تنفيذ صوري ليتوافق مع الـ Async
+            await Task.CompletedTask;
         }
 
-        // 4. جلب سجل حركات المادة مرتباً من الأحدث للأقدم
+        public async Task HardDeleteRecipeByMenuItemIdAsync(Guid menuItemId)
+        {
+            await _context.MenuItemIngredients
+                .IgnoreQueryFilters()
+                .Where(x => x.MenuItemId == menuItemId)
+                .ExecuteDeleteAsync();
+        }
+
         public async Task<IEnumerable<StockMovement>> GetStockHistoryAsync(Guid ingredientId)
         {
             return await _context.StockMovements
@@ -78,7 +80,6 @@ namespace RestaurantSystem.Infrastructure.Repositories.Implementations
                 .ToListAsync();
         }
 
-        // ملاحظة إضافية لضمان عمل GetWithRecipesAsync إذا كنت تستخدمه
         public async Task<Ingredient?> GetWithRecipesAsync(Guid id)
         {
             return await _context.Ingredients

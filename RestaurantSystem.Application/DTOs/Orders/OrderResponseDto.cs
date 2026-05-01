@@ -55,6 +55,9 @@ namespace RestaurantSystem.Application.DTOs.Orders
 
         public List<OrderItemResponseDto> Items { get; set; } = new();
 
+        // NEW: تقدم الأقسام داخل الطلب
+        public List<OrderDepartmentProgressDto> DepartmentProgresses { get; set; } = new();
+
         /// <summary>
         /// معلومات الدفع إن كانت موجودة ومحملة مع الطلب
         /// </summary>
@@ -67,7 +70,6 @@ namespace RestaurantSystem.Application.DTOs.Orders
         public Guid MenuItemId { get; set; }
         public string MenuItemName { get; set; } = string.Empty;
 
-        // 🔥 الجديد: معلومات القسم
         public Guid DepartmentId { get; set; }
         public string DepartmentName { get; set; } = string.Empty;
 

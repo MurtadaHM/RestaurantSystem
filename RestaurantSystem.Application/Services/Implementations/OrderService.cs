@@ -15,6 +15,8 @@ namespace RestaurantSystem.Application.Services.Implementations
     {
         private readonly IOrderRepository _orderRepository;
         private readonly IMenuRepository _menuRepository;
+        private readonly IOrderDepartmentProgressRepository _orderDepartmentProgressRepository;
+        private readonly ITableRepository _tableRepository;
         private readonly IMapper _mapper;
         private readonly IOrderNotificationService _notificationService;
         private readonly IInventoryService _inventoryService;
@@ -24,6 +26,8 @@ namespace RestaurantSystem.Application.Services.Implementations
         public OrderService(
             IOrderRepository orderRepository,
             IMenuRepository menuRepository,
+            IOrderDepartmentProgressRepository orderDepartmentProgressRepository,
+            ITableRepository tableRepository,
             IMapper mapper,
             IOrderNotificationService notificationService,
             IInventoryService inventoryService,
@@ -32,6 +36,8 @@ namespace RestaurantSystem.Application.Services.Implementations
         {
             _orderRepository = orderRepository;
             _menuRepository = menuRepository;
+            _orderDepartmentProgressRepository = orderDepartmentProgressRepository;
+            _tableRepository = tableRepository;
             _mapper = mapper;
             _notificationService = notificationService;
             _inventoryService = inventoryService;
@@ -42,6 +48,8 @@ namespace RestaurantSystem.Application.Services.Implementations
         public async Task<OrderResponseDto> CreateOrderAsync(CreateOrderRequestDto request)
         {
             _logger.LogInformation("📝 بدء إنشاء طلب جديد للعميل: {Phone}", request.CustomerPhoneNumber);
+
+            await ValidateTableForDineInOrderAsync(request.OrderType, request.TableId);
 
             var allOrders = await _orderRepository.GetAllAsync();
             int nextOrderNumber = (allOrders.Any() ? allOrders.Max(o => o.OrderNumber) : 0) + 1;
@@ -92,16 +100,32 @@ namespace RestaurantSystem.Application.Services.Implementations
 
             await _orderRepository.AddAsync(order);
 
-            // ملاحظة:
-            // لا يتم خصم المخزون هنا.
-            // الخصم يتم فقط عند انتقال الطلب إلى Confirmed داخل UpdateOrderStatusAsync.
+            var distinctDepartmentIds = order.OrderItems
+                .Where(x => x.DepartmentId != Guid.Empty)
+                .Select(x => (Guid)x.DepartmentId)
+                .Distinct()
+                .ToList();
 
-            var response = _mapper.Map<OrderResponseDto>(order);
+            foreach (var departmentId in distinctDepartmentIds)
+            {
+                await _orderDepartmentProgressRepository.AddAsync(new OrderDepartmentProgress
+                {
+                    Id = Guid.NewGuid(),
+                    OrderId = order.Id,
+                    DepartmentId = departmentId,
+                    Status = OrderDepartmentStatus.Pending,
+                    CreatedAt = DateTime.UtcNow
+                });
+            }
 
-            // 1. إشعار عام للكاشير/المدير
+            await _orderDepartmentProgressRepository.SaveChangesAsync();
+
+            await MarkTableOccupiedForDineInOrderAsync(order);
+
+            var response = await GetOrderByIdAsync(order.Id);
+
             await _notificationService.NotifyNewOrderAsync(response);
 
-            // 2. توزيع الطلب حسب الأقسام
             var grouped = order.OrderItems.GroupBy(x => x.DepartmentId);
 
             foreach (var group in grouped)
@@ -139,8 +163,7 @@ namespace RestaurantSystem.Application.Services.Implementations
             if (order == null)
                 throw new Exception("الطلب غير موجود");
 
-            // خصم المخزون فقط عند التحول إلى Confirmed
-            if (request.NewStatus == OrderStatus.Confirmed)
+            if (request.NewStatus == OrderStatus.Confirmed && !order.IsStockDeducted)
             {
                 try
                 {
@@ -149,7 +172,6 @@ namespace RestaurantSystem.Application.Services.Implementations
                 }
                 catch (ValidationException vex)
                 {
-                    // لا نغير الحالة إذا المخزون غير كافٍ
                     _logger.LogWarning(
                         "⚠️ فشل استقطاع المخزن للطلب #{OrderNo}: {Msg}",
                         order.OrderNumber,
@@ -160,6 +182,10 @@ namespace RestaurantSystem.Application.Services.Implementations
             }
 
             order.Status = request.NewStatus;
+            if (request.NewStatus == OrderStatus.Completed && !order.CompletedAt.HasValue)
+            {
+                order.CompletedAt = DateTime.UtcNow;
+            }
 
             if (request.NewStatus == OrderStatus.Confirmed &&
                 order.OrderType == OrderType.Delivery &&
@@ -170,12 +196,92 @@ namespace RestaurantSystem.Application.Services.Implementations
 
             await _orderRepository.UpdateAsync(order);
 
+            if (IsTerminalOrderStatus(request.NewStatus))
+            {
+                await FreeTableIfNoActiveDineInOrdersAsync(order);
+            }
+
             await _notificationService.NotifyOrderStatusChangedAsync(
                 id,
                 order.OrderNumber,
                 request.NewStatus.ToString());
 
-            return _mapper.Map<OrderResponseDto>(order);
+            return await GetOrderByIdAsync(order.Id);
+        }
+
+        public async Task<IEnumerable<OrderDepartmentProgressDto>> GetOrderDepartmentProgressAsync(Guid orderId)
+        {
+            var progresses = await _orderDepartmentProgressRepository.GetByOrderIdAsync(orderId);
+            return _mapper.Map<IEnumerable<OrderDepartmentProgressDto>>(progresses);
+        }
+
+        public async Task<OrderDepartmentProgressDto> UpdateOrderDepartmentStatusAsync(
+            Guid orderId,
+            UpdateOrderDepartmentStatusRequestDto request)
+        {
+            var order = await _orderRepository.GetOrderWithDetailsAsync(orderId);
+            if (order == null)
+                throw new Exception("الطلب غير موجود");
+
+            if (order.Status == OrderStatus.Completed ||
+                order.Status == OrderStatus.Cancelled ||
+                order.Status == OrderStatus.Returned)
+            {
+                throw new Exception("لا يمكن تحديث حالة قسم لطلب مكتمل أو ملغي أو مرجع");
+            }
+
+            var progress = await _orderDepartmentProgressRepository
+                .GetByOrderAndDepartmentAsync(orderId, request.DepartmentId);
+
+            if (progress == null)
+                throw new Exception("القسم غير موجود داخل هذا الطلب");
+
+            progress.Status = request.NewStatus;
+            progress.Notes = request.Notes;
+
+            if (request.NewStatus == OrderDepartmentStatus.Preparing && !progress.StartedAt.HasValue)
+            {
+                progress.StartedAt = DateTime.UtcNow;
+            }
+
+            if (request.NewStatus == OrderDepartmentStatus.Ready)
+            {
+                progress.ReadyAt = DateTime.UtcNow;
+            }
+            else
+            {
+                progress.ReadyAt = null;
+            }
+
+            await _orderDepartmentProgressRepository.UpdateAsync(progress);
+            await _orderDepartmentProgressRepository.SaveChangesAsync();
+
+            var allProgresses = (await _orderDepartmentProgressRepository.GetByOrderIdAsync(orderId)).ToList();
+
+            if (allProgresses.All(x => x.Status == OrderDepartmentStatus.Ready))
+            {
+                order.Status = OrderStatus.Ready;
+            }
+            else if (allProgresses.Any(x =>
+                         x.Status == OrderDepartmentStatus.Preparing ||
+                         x.Status == OrderDepartmentStatus.Ready))
+            {
+                order.Status = OrderStatus.Preparing;
+            }
+            else
+            {
+                if (order.Status != OrderStatus.Pending)
+                    order.Status = OrderStatus.Confirmed;
+            }
+
+            await _orderRepository.UpdateAsync(order);
+
+            await _notificationService.NotifyOrderStatusChangedAsync(
+                order.Id,
+                order.OrderNumber,
+                order.Status.ToString());
+
+            return _mapper.Map<OrderDepartmentProgressDto>(progress);
         }
 
         public async Task<OrderResponseDto> SyncExternalStatusAsync(Guid orderId)
@@ -199,13 +305,18 @@ namespace RestaurantSystem.Application.Services.Implementations
 
             await _orderRepository.UpdateAsync(order);
 
+            if (IsTerminalOrderStatus(order.Status))
+            {
+                await FreeTableIfNoActiveDineInOrdersAsync(order);
+            }
+
             await _notificationService.NotifyExternalDeliveryUpdateAsync(
                 order.Id,
                 order.OrderNumber,
                 internalStatus,
                 externalStatus);
 
-            return _mapper.Map<OrderResponseDto>(order);
+            return await GetOrderByIdAsync(order.Id);
         }
 
         public async Task<OrderResponseDto> UpdateExternalStatusFromWebhookAsync(
@@ -230,13 +341,18 @@ namespace RestaurantSystem.Application.Services.Implementations
 
             await _orderRepository.UpdateAsync(order);
 
+            if (IsTerminalOrderStatus(order.Status))
+            {
+                await FreeTableIfNoActiveDineInOrdersAsync(order);
+            }
+
             await _notificationService.NotifyExternalDeliveryUpdateAsync(
                 order.Id,
                 order.OrderNumber,
                 mappedStatus,
                 newStatus);
 
-            return _mapper.Map<OrderResponseDto>(order);
+            return await GetOrderByIdAsync(order.Id);
         }
 
         private async Task ProcessExternalDeliveryPush(Order order)
@@ -324,8 +440,11 @@ namespace RestaurantSystem.Application.Services.Implementations
             return _mapper.Map<OrderResponseDto>(order);
         }
 
-        public async Task<OrderResponseDto> GetOrderByIdAsync(Guid id) =>
-            _mapper.Map<OrderResponseDto>(await _orderRepository.GetOrderWithDetailsAsync(id));
+        public async Task<OrderResponseDto> GetOrderByIdAsync(Guid id)
+        {
+            var order = await _orderRepository.GetOrderWithDetailsAsync(id);
+            return _mapper.Map<OrderResponseDto>(order);
+        }
 
         public async Task<IEnumerable<OrderResponseDto>> GetAllOrdersAsync() =>
             _mapper.Map<IEnumerable<OrderResponseDto>>(await _orderRepository.GetAllOrdersWithDetailsAsync());
@@ -356,6 +475,8 @@ namespace RestaurantSystem.Application.Services.Implementations
             order.LastExternalSyncDate = DateTime.UtcNow;
 
             await _orderRepository.UpdateAsync(order);
+            await FreeTableIfNoActiveDineInOrdersAsync(order);
+
             return true;
         }
 
@@ -385,6 +506,90 @@ namespace RestaurantSystem.Application.Services.Implementations
 
             await _orderRepository.UpdateAsync(order);
             return _mapper.Map<OrderResponseDto>(order);
+        }
+
+        private async Task ValidateTableForDineInOrderAsync(OrderType orderType, Guid? tableId)
+        {
+            if (orderType != OrderType.DineIn)
+                return;
+
+            if (!tableId.HasValue || tableId.Value == Guid.Empty)
+                throw new Exception("يجب اختيار طاولة للطلب داخل المطعم");
+
+            var table = await _tableRepository.GetByIdAsync(tableId.Value);
+            if (table == null)
+                throw new Exception("الطاولة غير موجودة");
+
+            if (!table.IsActive)
+                throw new Exception("الطاولة غير فعالة");
+
+            if (!table.IsOrderingEnabled)
+                throw new Exception("الطلب الإلكتروني غير متاح لهذه الطاولة");
+
+            if (table.Status == TableStatus.Maintenance)
+                throw new Exception("لا يمكن إنشاء طلب على طاولة تحت الصيانة");
+
+            if (table.Status == TableStatus.Occupied)
+                throw new Exception("الطاولة مشغولة حالياً");
+        }
+
+        private async Task MarkTableOccupiedForDineInOrderAsync(Order order)
+        {
+            if (order.OrderType != OrderType.DineIn || !order.TableId.HasValue)
+                return;
+
+            var table = await _tableRepository.GetByIdAsync(order.TableId.Value);
+            if (table == null)
+                throw new Exception("الطاولة غير موجودة");
+
+            if (table.Status != TableStatus.Occupied)
+            {
+                table.Status = TableStatus.Occupied;
+                await _tableRepository.UpdateAsync(table);
+
+                _logger.LogInformation(
+                    "🍽️ تم تغيير حالة الطاولة {TableNumber} إلى Occupied بسبب الطلب #{OrderNumber}",
+                    table.TableNumber,
+                    order.OrderNumber);
+            }
+        }
+
+        private async Task FreeTableIfNoActiveDineInOrdersAsync(Order order)
+        {
+            if (order.OrderType != OrderType.DineIn || !order.TableId.HasValue)
+                return;
+
+            var tableOrders = await _orderRepository.GetOrdersByTableIdAsync(order.TableId.Value);
+
+            var hasOtherActiveDineInOrders = tableOrders.Any(o =>
+                o.Id != order.Id &&
+                o.OrderType == OrderType.DineIn &&
+                !IsTerminalOrderStatus(o.Status));
+
+            if (hasOtherActiveDineInOrders)
+                return;
+
+            var table = await _tableRepository.GetByIdAsync(order.TableId.Value);
+            if (table == null)
+                return;
+
+            if (table.Status == TableStatus.Occupied)
+            {
+                table.Status = TableStatus.Available;
+                await _tableRepository.UpdateAsync(table);
+
+                _logger.LogInformation(
+                    "🟢 تم تحرير الطاولة {TableNumber} بعد إنهاء/إلغاء الطلب #{OrderNumber}",
+                    table.TableNumber,
+                    order.OrderNumber);
+            }
+        }
+
+        private static bool IsTerminalOrderStatus(OrderStatus status)
+        {
+            return status == OrderStatus.Completed ||
+                   status == OrderStatus.Cancelled ||
+                   status == OrderStatus.Returned;
         }
 
         private static void ApplyExternalStatusToOrder(

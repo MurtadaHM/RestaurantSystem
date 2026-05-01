@@ -85,12 +85,24 @@ namespace RestaurantSystem.Api.Controllers
             Guid menuItemId,
             [FromBody] List<MenuItemIngredientDto> ingredients)
         {
-            var success = await _inventoryService.UpdateRecipeAsync(menuItemId, ingredients);
+            try
+            {
+                var success = await _inventoryService.UpdateRecipeAsync(menuItemId, ingredients);
 
-            if (!success)
-                return BadRequest(new { success = false, message = "فشلت عملية تحديث الوصفة" });
+                if (!success)
+                    return BadRequest(new { success = false, message = "فشلت عملية تحديث الوصفة" });
 
-            return Ok(new { success = true, message = "تم تحديث وصفة الطبق بنجاح" });
+                return Ok(new { success = true, message = "تم تحديث وصفة الطبق بنجاح" });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new
+                {
+                    success = false,
+                    message = ex.Message,
+                    detail = ex.InnerException?.Message
+                });
+            }
         }
 
         [HttpGet("{id:guid}/history")]

@@ -3,8 +3,8 @@ using RestaurantSystem.Application.Contracts.Repositories;
 using RestaurantSystem.Application.DTOs.Tables;
 using RestaurantSystem.Application.Services.Interfaces;
 using RestaurantSystem.Domain.Entities;
-using RestaurantSystem.Domain.Exceptions;
 using RestaurantSystem.Domain.Enums;
+using RestaurantSystem.Domain.Exceptions;
 
 namespace RestaurantSystem.Application.Services.Implementations
 {
@@ -36,7 +36,7 @@ namespace RestaurantSystem.Application.Services.Implementations
         // 3. جلب طاولة محددة بواسطة الـ ID
         public async Task<TableResponseDto> GetTableByIdAsync(Guid id)
         {
-            var table = await _tableRepository.GetByIdAsync(id);
+            var table = await _tableRepository.GetByIdWithOrdersAsync(id);
 
             if (table == null)
                 throw new NotFoundException("الطاولة", id);
@@ -47,14 +47,18 @@ namespace RestaurantSystem.Application.Services.Implementations
         // 4. إنشاء طاولة جديدة
         public async Task<TableResponseDto> CreateTableAsync(CreateTableRequestDto request)
         {
-            // التأكد من أن رقم الطاولة غير مكرر
-            var exists = await _tableRepository.ExistsByTableNumberAsync(request.TableNumber);
-            if (exists)
+            NormalizeCreateRequest(request);
+
+            var tableNumberExists = await _tableRepository.ExistsByTableNumberAsync(request.TableNumber);
+            if (tableNumberExists)
                 throw new ConflictException($"رقم الطاولة '{request.TableNumber}' موجود بالفعل.");
+
+            var codeExists = await _tableRepository.ExistsByCodeAsync(request.Code);
+            if (codeExists)
+                throw new ConflictException($"كود الطاولة '{request.Code}' موجود بالفعل.");
 
             var table = _mapper.Map<Table>(request);
 
-            // الحالة الافتراضية عند الإنشاء
             table.Status = TableStatus.Available;
             table.CreatedAt = DateTime.UtcNow;
 
@@ -66,19 +70,26 @@ namespace RestaurantSystem.Application.Services.Implementations
         // 5. تحديث بيانات طاولة موجودة
         public async Task<TableResponseDto> UpdateTableAsync(Guid id, UpdateTableRequestDto request)
         {
+            NormalizeUpdateRequest(request);
+
             var table = await _tableRepository.GetByIdAsync(id);
             if (table == null)
                 throw new NotFoundException("الطاولة", id);
 
-            // إذا تغير رقم الطاولة، نتأكد أنه غير مستخدم في طاولة أخرى
             if (!string.Equals(table.TableNumber, request.TableNumber, StringComparison.OrdinalIgnoreCase))
             {
-                var exists = await _tableRepository.ExistsByTableNumberAsync(request.TableNumber);
-                if (exists)
+                var tableNumberExists = await _tableRepository.ExistsByTableNumberAsync(request.TableNumber);
+                if (tableNumberExists)
                     throw new ConflictException($"رقم الطاولة '{request.TableNumber}' مستخدم من قبل طاولة أخرى.");
             }
 
-            // تحديث البيانات باستخدام AutoMapper
+            if (!string.Equals(table.Code, request.Code, StringComparison.OrdinalIgnoreCase))
+            {
+                var codeExists = await _tableRepository.ExistsByCodeAsync(request.Code);
+                if (codeExists)
+                    throw new ConflictException($"كود الطاولة '{request.Code}' مستخدم من قبل طاولة أخرى.");
+            }
+
             _mapper.Map(request, table);
             table.UpdatedAt = DateTime.UtcNow;
 
@@ -94,8 +105,23 @@ namespace RestaurantSystem.Application.Services.Implementations
             if (table == null)
                 throw new NotFoundException("الطاولة", id);
 
-            // ملاحظة: الـ Repository يتولى عملية الـ Soft Delete بناءً على إعدادات الـ SaveChanges التي كتبناها
             await _tableRepository.DeleteAsync(id);
+        }
+
+        private static void NormalizeCreateRequest(CreateTableRequestDto request)
+        {
+            request.TableNumber = request.TableNumber.Trim();
+            request.Code = request.Code.Trim();
+            request.Location = request.Location.Trim();
+            request.Zone = string.IsNullOrWhiteSpace(request.Zone) ? null : request.Zone.Trim();
+        }
+
+        private static void NormalizeUpdateRequest(UpdateTableRequestDto request)
+        {
+            request.TableNumber = request.TableNumber.Trim();
+            request.Code = request.Code.Trim();
+            request.Location = request.Location.Trim();
+            request.Zone = string.IsNullOrWhiteSpace(request.Zone) ? null : request.Zone.Trim();
         }
     }
 }

@@ -2,6 +2,7 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 using RestaurantSystem.Infrastructure.Data;
@@ -11,9 +12,11 @@ using RestaurantSystem.Infrastructure.Data;
 namespace RestaurantSystem.Infrastructure.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260427212519_FixMenuItemIngredientPrimaryKey")]
+    partial class FixMenuItemIngredientPrimaryKey
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -407,55 +410,6 @@ namespace RestaurantSystem.Infrastructure.Migrations
                     b.ToTable("Orders", (string)null);
                 });
 
-            modelBuilder.Entity("RestaurantSystem.Domain.Entities.OrderDepartmentProgress", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uuid");
-
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<DateTime?>("DeletedAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<Guid>("DepartmentId")
-                        .HasColumnType("uuid");
-
-                    b.Property<bool>("IsDeleted")
-                        .HasColumnType("boolean");
-
-                    b.Property<string>("Notes")
-                        .HasMaxLength(500)
-                        .HasColumnType("character varying(500)");
-
-                    b.Property<Guid>("OrderId")
-                        .HasColumnType("uuid");
-
-                    b.Property<DateTime?>("ReadyAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<DateTime?>("StartedAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<string>("Status")
-                        .IsRequired()
-                        .HasColumnType("text");
-
-                    b.Property<DateTime?>("UpdatedAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("DepartmentId");
-
-                    b.HasIndex("OrderId", "DepartmentId")
-                        .IsUnique()
-                        .HasDatabaseName("IX_OrderDepartmentProgress_OrderId_DepartmentId");
-
-                    b.ToTable("OrderDepartmentProgresses", (string)null);
-                });
-
             modelBuilder.Entity("RestaurantSystem.Domain.Entities.OrderItem", b =>
                 {
                     b.Property<Guid>("Id")
@@ -585,7 +539,7 @@ namespace RestaurantSystem.Infrastructure.Migrations
                         .HasColumnType("boolean");
 
                     b.Property<DateTime>("ReservationDate")
-                        .HasColumnType("timestamp without time zone");
+                        .HasColumnType("timestamp with time zone");
 
                     b.Property<string>("SpecialRequests")
                         .HasColumnType("text");
@@ -667,8 +621,7 @@ namespace RestaurantSystem.Infrastructure.Migrations
 
                     b.Property<string>("Code")
                         .IsRequired()
-                        .HasMaxLength(30)
-                        .HasColumnType("character varying(30)");
+                        .HasColumnType("text");
 
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("timestamp with time zone");
@@ -710,14 +663,9 @@ namespace RestaurantSystem.Infrastructure.Migrations
                         .HasColumnType("timestamp with time zone");
 
                     b.Property<string>("Zone")
-                        .HasMaxLength(50)
-                        .HasColumnType("character varying(50)");
+                        .HasColumnType("text");
 
                     b.HasKey("Id");
-
-                    b.HasIndex("Code")
-                        .IsUnique()
-                        .HasDatabaseName("IX_Tables_Code");
 
                     b.HasIndex("Status")
                         .HasDatabaseName("IX_Tables_Status");
@@ -733,65 +681,57 @@ namespace RestaurantSystem.Infrastructure.Migrations
                         {
                             Id = new Guid("aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa"),
                             Capacity = 2,
-                            Code = "TBL-T1",
+                            Code = "",
                             CreatedAt = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
-                            FloorNumber = 1,
                             IsActive = true,
                             IsDeleted = false,
                             IsOrderingEnabled = true,
                             Location = "بجانب النافذة",
                             Notes = "طاولة مريحة بإطلالة جميلة",
                             Status = "Available",
-                            TableNumber = "T1",
-                            Zone = "الصالة الرئيسية"
+                            TableNumber = "T1"
                         },
                         new
                         {
                             Id = new Guid("bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb"),
                             Capacity = 4,
-                            Code = "TBL-T2",
+                            Code = "",
                             CreatedAt = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
-                            FloorNumber = 1,
                             IsActive = true,
                             IsDeleted = false,
                             IsOrderingEnabled = true,
                             Location = "الوسط",
                             Notes = "طاولة مثالية للعائلات",
                             Status = "Available",
-                            TableNumber = "T2",
-                            Zone = "الصالة الرئيسية"
+                            TableNumber = "T2"
                         },
                         new
                         {
                             Id = new Guid("cccccccc-cccc-cccc-cccc-cccccccccccc"),
                             Capacity = 6,
-                            Code = "TBL-T3",
+                            Code = "",
                             CreatedAt = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
-                            FloorNumber = 1,
                             IsActive = true,
                             IsDeleted = false,
                             IsOrderingEnabled = true,
                             Location = "الزاوية",
                             Notes = "طاولة ممتازة للخصوصية",
                             Status = "Available",
-                            TableNumber = "T3",
-                            Zone = "الصالة الرئيسية"
+                            TableNumber = "T3"
                         },
                         new
                         {
                             Id = new Guid("dddddddd-dddd-dddd-dddd-dddddddddddd"),
                             Capacity = 8,
-                            Code = "TBL-T4",
+                            Code = "",
                             CreatedAt = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
-                            FloorNumber = 1,
                             IsActive = true,
                             IsDeleted = false,
                             IsOrderingEnabled = true,
                             Location = "قاعة VIP",
                             Notes = "طاولة فاخرة خاصة لكبار الزوار",
                             Status = "Available",
-                            TableNumber = "T4",
-                            Zone = "VIP"
+                            TableNumber = "T4"
                         });
                 });
 
@@ -932,25 +872,6 @@ namespace RestaurantSystem.Infrastructure.Migrations
                     b.Navigation("User");
                 });
 
-            modelBuilder.Entity("RestaurantSystem.Domain.Entities.OrderDepartmentProgress", b =>
-                {
-                    b.HasOne("RestaurantSystem.Domain.Entities.Department", "Department")
-                        .WithMany("OrderDepartmentProgresses")
-                        .HasForeignKey("DepartmentId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.HasOne("RestaurantSystem.Domain.Entities.Order", "Order")
-                        .WithMany("OrderDepartmentProgresses")
-                        .HasForeignKey("OrderId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("Department");
-
-                    b.Navigation("Order");
-                });
-
             modelBuilder.Entity("RestaurantSystem.Domain.Entities.OrderItem", b =>
                 {
                     b.HasOne("RestaurantSystem.Domain.Entities.Department", "Department")
@@ -1022,8 +943,6 @@ namespace RestaurantSystem.Infrastructure.Migrations
             modelBuilder.Entity("RestaurantSystem.Domain.Entities.Department", b =>
                 {
                     b.Navigation("MenuItems");
-
-                    b.Navigation("OrderDepartmentProgresses");
                 });
 
             modelBuilder.Entity("RestaurantSystem.Domain.Entities.Ingredient", b =>
@@ -1042,8 +961,6 @@ namespace RestaurantSystem.Infrastructure.Migrations
 
             modelBuilder.Entity("RestaurantSystem.Domain.Entities.Order", b =>
                 {
-                    b.Navigation("OrderDepartmentProgresses");
-
                     b.Navigation("OrderItems");
 
                     b.Navigation("Payment");

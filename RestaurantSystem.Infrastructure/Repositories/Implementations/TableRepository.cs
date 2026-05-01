@@ -48,6 +48,14 @@ namespace RestaurantSystem.Infrastructure.Repositories.Implementations
                 .ToListAsync();
         }
 
+        public override async Task<IEnumerable<Table>> GetAllAsync()
+        {
+            return await _dbSet
+                .Include(t => t.Orders)
+                .OrderBy(t => t.TableNumber)
+                .ToListAsync();
+        }
+
         public async Task<IEnumerable<Table>> GetByLocationAsync(string location)
         {
             var normalizedLocation = location.Trim().ToLower();

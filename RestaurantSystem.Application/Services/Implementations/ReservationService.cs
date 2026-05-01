@@ -29,7 +29,8 @@ namespace RestaurantSystem.Application.Services.Implementations
         public async Task<ReservationResponseDto> CreateReservationAsync(CreateReservationRequestDto request)
         {
             // أ. التأكد من أن التاريخ ليس في الماضي
-            if (request.ReservationDate < DateTime.UtcNow)
+            // Use local restaurant time comparison (DateTime.Now) to avoid UTC/local mismatch
+            if (request.ReservationDate < DateTime.Now)
                 throw new Exception("لا يمكن الحجز في تاريخ قديم!");
 
             // ب. التأكد من وجود الطاولة وسعتها
@@ -46,13 +47,13 @@ namespace RestaurantSystem.Application.Services.Implementations
 
             foreach (var existing in existingReservations)
             {
-                // نحسب الفرق بالوقت بين الحجز الجديد والحجوزات الموجودة
+                // نحسب الفرق بالوقت بين الحجز new والحجوزات الموجودة
                 var timeDiff = (request.ReservationDate - existing.ReservationDate).Duration();
 
                 // إذا كان الفرق أقل من ساعتين (120 دقيقة)، نرفض الحجز
                 if (timeDiff.TotalMinutes < 120)
                 {
-                    throw new Exception($"عذراً، الطاولة محجوزة في هذا الوقت (حجز آخر في {existing.ReservationDate:HH:mm}). يرجى اختيار وقت مختلف.");
+                    throw new Exception($"عذراً، الطاولة محجوزة في هذا الوقت (حجز آخر في {existing.ReservationDate:HH:mm}). يرجى اختيار وقت مختلـف.");
                 }
             }
 

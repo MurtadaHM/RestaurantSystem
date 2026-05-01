@@ -20,6 +20,7 @@ namespace RestaurantSystem.Infrastructure.Data
         public DbSet<OrderItem> OrderItems { get; set; }
         public DbSet<Payment> Payments { get; set; }
         public DbSet<Department> Departments { get; set; }
+        public DbSet<OrderDepartmentProgress> OrderDepartmentProgresses { get; set; }
         public DbSet<Reservation> Reservations { get; set; }
         public DbSet<Ingredient> Ingredients { get; set; }
         public DbSet<MenuItemIngredient> MenuItemIngredients { get; set; }
@@ -49,16 +50,21 @@ namespace RestaurantSystem.Infrastructure.Data
                         property.Sentinel = Activator.CreateInstance(type);
                     }
 
-                    // DateTime غير nullable
-                    if (property.ClrType == typeof(DateTime))
+                    // Special-case: do NOT apply global DateTime UTC converter to Reservation.ReservationDate
+                    var isReservationDate =
+                        entityType.ClrType == typeof(Reservation) &&
+                        property.Name == nameof(Reservation.ReservationDate);
+
+                    // DateTime غير nullable (apply only when NOT ReservationDate)
+                    if (property.ClrType == typeof(DateTime) && !isReservationDate)
                     {
                         property.SetValueConverter(new ValueConverter<DateTime, DateTime>(
                             v => v.Kind == DateTimeKind.Utc ? v : DateTime.SpecifyKind(v, DateTimeKind.Utc),
                             v => v.Kind == DateTimeKind.Utc ? v : DateTime.SpecifyKind(v, DateTimeKind.Utc)));
                     }
 
-                    // DateTime nullable
-                    if (property.ClrType == typeof(DateTime?))
+                    // DateTime nullable (apply only when NOT ReservationDate)
+                    if (property.ClrType == typeof(DateTime?) && !isReservationDate)
                     {
                         property.SetValueConverter(new ValueConverter<DateTime?, DateTime?>(
                             v => v.HasValue

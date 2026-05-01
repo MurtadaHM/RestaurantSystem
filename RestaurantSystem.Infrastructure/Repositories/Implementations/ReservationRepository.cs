@@ -83,5 +83,14 @@ namespace RestaurantSystem.Infrastructure.Repositories.Implementations
                 await _context.SaveChangesAsync();
             }
         }
+
+        // Safe override: ensure GetAll includes Table so AutoMapper can map TableNumber
+        public override async Task<IEnumerable<Reservation>> GetAllAsync()
+        {
+            return await _dbSet
+                .Include(r => r.Table)
+                .OrderByDescending(r => r.CreatedAt)
+                .ToListAsync();
+        }
     }
 }

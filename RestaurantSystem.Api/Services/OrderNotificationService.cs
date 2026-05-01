@@ -4,6 +4,7 @@ using RestaurantSystem.Application.Contracts.Signals;
 using Microsoft.Extensions.Logging;
 using RestaurantSystem.Application.DTOs.Orders;
 using RestaurantSystem.Domain.Enums;
+using System; // added for DateTime
 
 namespace RestaurantSystem.Api.Services
 {
@@ -72,6 +73,32 @@ namespace RestaurantSystem.Api.Services
                 DeliveryStatus = externalStatus.ToString(),
                 Description = message, // مثلاً: "السائق استلم الطلب وهو في الطريق"
                 Timestamp = DateTime.UtcNow
+            });
+        }
+
+        // ---------- NEW: table & reservation realtime notifications ----------
+        public async Task NotifyTableStatusChangedAsync(Guid tableId, string tableNumber, string newStatus)
+        {
+            _logger.LogInformation("Table Status Update: Table #{TableNumber} ({TableId}) is now {Status}", tableNumber, tableId, newStatus);
+
+            await _hubContext.Clients.All.SendAsync("TableStatusChanged", new
+            {
+                tableId,
+                tableNumber,
+                newStatus,
+                timestamp = DateTime.UtcNow
+            });
+        }
+
+        public async Task NotifyReservationStatusChangedAsync(Guid reservationId, string newStatus)
+        {
+            _logger.LogInformation("Reservation Status Update: Reservation {ReservationId} is now {Status}", reservationId, newStatus);
+
+            await _hubContext.Clients.All.SendAsync("ReservationStatusChanged", new
+            {
+                reservationId,
+                newStatus,
+                timestamp = DateTime.UtcNow
             });
         }
     }

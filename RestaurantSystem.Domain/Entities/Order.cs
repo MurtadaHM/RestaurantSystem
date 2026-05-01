@@ -20,61 +20,32 @@ namespace RestaurantSystem.Domain.Entities
         public DateTime? ExpectedReadyTime { get; set; }
         public DateTime? CompletedAt { get; set; }
 
-        /// <summary>
-        /// Flag: prevents double deduction of inventory when stock deduction logic is applied multiple times
-        /// </summary>
         public bool IsStockDeducted { get; set; } = false;
 
-        // ──────────────────────────────────────────────────────────
         // Sendy Integration
-        // ──────────────────────────────────────────────────────────
-
-        /// <summary>المعرف الخارجي الداخلي للطلب في Sendy</summary>
         public Guid? ExternalOrderId { get; set; }
-
-        /// <summary>المعرف العام الخارجي للطلب في Sendy مثل ORD-20260410-XXXXX</summary>
         public string? ExternalPublicId { get; set; }
-
-        /// <summary>الحالة الفنية للتوصيل عند الشريك الخارجي</summary>
         public DeliveryPartnerStatus ExternalDeliveryStatus { get; set; } = DeliveryPartnerStatus.Idle;
-
-        /// <summary>هل تم إرسال الطلب بنجاح إلى Sendy</summary>
         public bool IsSyncedToExternalProvider { get; set; } = false;
-
-        /// <summary>آخر وقت مزامنة مع النظام الخارجي</summary>
         public DateTime? LastExternalSyncDate { get; set; }
-
-        /// <summary>رابط تتبع الطلب الخارجي</summary>
         public string? TrackingUrl { get; set; }
-
-        /// <summary>عنوان التوصيل النصي</summary>
         public string? DeliveryAddress { get; set; }
-
         public double? Latitude { get; set; }
         public double? Longitude { get; set; }
-
-        /// <summary>رقم هاتف الزبون</summary>
         public string? CustomerPhoneNumber { get; set; }
-
-        /// <summary>اسم السائق القادم من Sendy</summary>
         public string? CourierName { get; set; }
-
-        /// <summary>رقم هاتف السائق القادم من Sendy</summary>
         public string? CourierPhoneNumber { get; set; }
 
-        // ──────────────────────────────────────────────────────────
         // Navigation Properties
-        // ──────────────────────────────────────────────────────────
-
         public User? User { get; set; }
         public Table? Table { get; set; }
         public ICollection<OrderItem> OrderItems { get; set; } = new List<OrderItem>();
         public Payment? Payment { get; set; }
 
-        // ──────────────────────────────────────────────────────────
-        // Team 6
-        // ──────────────────────────────────────────────────────────
+        // NEW: department-level progress
+        public ICollection<OrderDepartmentProgress> OrderDepartmentProgresses { get; set; } = new List<OrderDepartmentProgress>();
 
+        // Team 6
         public string? PartnerUserId { get; set; }
         public string? PartnerOrderId { get; set; }
         public string? PartnerSource { get; set; }
