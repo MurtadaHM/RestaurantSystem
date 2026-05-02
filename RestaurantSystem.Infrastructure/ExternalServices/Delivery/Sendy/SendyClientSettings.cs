@@ -26,5 +26,15 @@
         /// السر الخاص بالـ Webhook القادم من Sendy
         /// </summary>
         public string WebhookSecret { get; set; } = string.Empty;
+
+        /// <summary>
+        /// Phase 1: default province code to use when front-end did not provide address reference
+        /// </summary>
+        public string? DefaultAddressProvinceCode { get; set; }
+
+        /// <summary>
+        /// Phase 1: default area id to use when front-end did not provide address reference
+        /// </summary>
+        public Guid? DefaultAddressAreaId { get; set; }
     }
 }

@@ -69,5 +69,15 @@
         /// cash أو online
         /// </summary>
         public string PaymentMethod { get; set; } = "cash";
+
+        /// <summary>
+        /// NEW: address province code (address reference)
+        /// </summary>
+        public string? AddressProvinceCode { get; set; }
+
+        /// <summary>
+        /// NEW: address area id (address reference)
+        /// </summary>
+        public Guid? AddressAreaId { get; set; }
     }
 }
