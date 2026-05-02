@@ -148,6 +148,22 @@ namespace RestaurantSystem.Api.Controllers
             return Ok(ApiResponse<bool>.Ok(true, "تم إرسال الطلب لشركة التوصيل بنجاح"));
         }
 
+        // NEW ENDPOINT: push to Sendy (internal store integration)
+        [Authorize(Roles = "Admin,Manager")]
+        [HttpPost("{id:guid}/push-to-sendy")]
+        public async Task<ActionResult<ApiResponse<OrderResponseDto>>> PushToSendy(Guid id)
+        {
+            try
+            {
+                var result = await _orderService.PushOrderToSendyAsync(id);
+                return Ok(ApiResponse<OrderResponseDto>.Ok(result, "تم إرسال الطلب إلى Sendy بنجاح"));
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(ApiResponse<OrderResponseDto>.Fail(ex.Message));
+            }
+        }
+
         [Authorize]
         [HttpPost("{id:guid}/sync-delivery")]
         public async Task<ActionResult<ApiResponse<OrderResponseDto>>> SyncDeliveryStatus(Guid id)

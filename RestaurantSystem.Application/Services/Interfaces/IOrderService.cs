@@ -36,5 +36,8 @@ namespace RestaurantSystem.Application.Services.Interfaces
         // NEW: Department-level progress
         Task<IEnumerable<OrderDepartmentProgressDto>> GetOrderDepartmentProgressAsync(Guid orderId);
         Task<OrderDepartmentProgressDto> UpdateOrderDepartmentStatusAsync(Guid orderId, UpdateOrderDepartmentStatusRequestDto request);
+
+        // Push local delivery order to Sendy
+        Task<OrderResponseDto> PushOrderToSendyAsync(Guid orderId);
     }
 }

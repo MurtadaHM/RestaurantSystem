@@ -426,6 +426,91 @@ namespace RestaurantSystem.Application.Services.Implementations
 
             return order.IsSyncedToExternalProvider;
         }
+        public async Task<OrderResponseDto> PushOrderToSendyAsync(Guid orderId)
+        {
+            _logger.LogInformation("🔁 PushOrderToSendyAsync called for order {OrderId}", orderId);
+
+            var order = await _orderRepository.GetOrderWithDetailsAsync(orderId);
+            if (order == null)
+                throw new Exception("الطلب غير موجود");
+
+            if (order.OrderType != OrderType.Delivery)
+                throw new Exception("يمكن فقط إرسال طلبات التوصيل إلى Sendy");
+
+            if (order.IsSyncedToExternalProvider || order.ExternalOrderId.HasValue)
+                throw new Exception("تمت مزامنة هذا الطلب بالفعل مع Sendy");
+
+            if (string.IsNullOrWhiteSpace(order.DeliveryAddress) ||
+                string.IsNullOrWhiteSpace(order.CustomerPhoneNumber) ||
+                !order.Latitude.HasValue ||
+                !order.Longitude.HasValue)
+            {
+                throw new Exception("معلومات التوصيل غير مكتملة: العنوان، رقم الهاتف، خط العرض وخط الطول مطلوبة");
+            }
+
+            var progresses = order.OrderDepartmentProgresses?.ToList() ?? new List<OrderDepartmentProgress>();
+
+            if (progresses.Any() && progresses.Any(p => p.Status != OrderDepartmentStatus.Ready))
+                throw new Exception("يجب أن تكون جميع أقسام الطلب جاهزة قبل الإرسال إلى Sendy");
+
+            var orderValue = order.OrderItems?.Sum(x => x.Price * x.Quantity) ?? 0m;
+
+            if (orderValue <= 0)
+                orderValue = Math.Max(0, order.TotalAmount - (order.DeliveryFee ?? 0));
+
+            var paymentMethod = "cash";
+            if (order.Payment != null)
+                paymentMethod = MapPaymentMethod(order.Payment.PaymentMethod.ToString());
+
+            var pushRequest = new IntegrationPushOrderRequest
+            {
+                OrderNumber = order.OrderNumber,
+                CustomerName = BuildCustomerName(order),
+                CustomerPhone = order.CustomerPhoneNumber,
+                CustomerAddress = order.DeliveryAddress,
+                DeliveryLat = order.Latitude.Value,
+                DeliveryLng = order.Longitude.Value,
+                OrderValue = orderValue,
+                DeliveryFee = order.DeliveryFee ?? 0,
+                ExternalRef = $"ORD-{order.OrderNumber}",
+                FulfillmentType = "from_to",
+                DeliveryMode = "direct",
+                PaymentMethod = paymentMethod
+            };
+
+            var (success, externalId, externalPublicId, trackingUrl, message) =
+                await _deliveryIntegrationService.PushOrderToSendyAsync(pushRequest);
+
+            if (!success)
+            {
+                _logger.LogError(
+                    "❌ Failed to push order #{OrderNumber} to Sendy. Message: {Message}",
+                    order.OrderNumber,
+                    message);
+
+                throw new Exception($"فشل إرسال الطلب إلى Sendy: {message}");
+            }
+
+            if (!externalId.HasValue)
+                throw new Exception("تم إرسال الطلب لكن Sendy لم يرجع ExternalOrderId");
+
+            order.ExternalOrderId = externalId.Value;
+            order.ExternalPublicId = externalPublicId;
+            order.TrackingUrl = trackingUrl ?? order.TrackingUrl;
+            order.IsSyncedToExternalProvider = true;
+            order.ExternalDeliveryStatus = DeliveryPartnerStatus.SearchingForDriver;
+            order.LastExternalSyncDate = DateTime.UtcNow;
+
+            await _orderRepository.UpdateAsync(order);
+
+            _logger.LogInformation(
+                "✅ Order #{OrderNumber} pushed to Sendy successfully. ExternalId: {ExternalId}, PublicId: {PublicId}",
+                order.OrderNumber,
+                externalId.Value,
+                externalPublicId);
+
+            return await GetOrderByIdAsync(order.Id);
+        }
 
         public async Task<OrderResponseDto?> GetOrderByOrderNumberAsync(int orderNumber)
         {
