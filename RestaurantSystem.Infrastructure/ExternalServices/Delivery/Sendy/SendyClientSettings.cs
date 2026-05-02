@@ -9,7 +9,7 @@
         /// الرابط الأساسي لـ Sendy API
         /// </summary>
         public string BaseUrl { get; set; } =
-            "https://sendyapi-e5g6f4d6gzhpdub8.westeurope-01.azurewebsites.net/";
+            "https://sendy-backend-production.up.railway.app/";
 
         /// <summary>
         /// مفتاح API الخاص بالمتجر
