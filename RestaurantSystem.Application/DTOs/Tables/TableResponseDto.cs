@@ -27,5 +27,7 @@
         public DateTime? CreatedAt { get; set; }
 
         public DateTime? UpdatedAt { get; set; }
+
+        public bool HasReservation { get; set; } // Indicates if the table has an active reservation
     }
 }
