@@ -5,6 +5,7 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using RestaurantSystem.Application.Contracts.ExternalServices;
 using RestaurantSystem.Application.DTOs.Orders;
+using RestaurantSystem.Application.Integrations;
 using RestaurantSystem.Domain.Enums;
 
 namespace RestaurantSystem.Infrastructure.ExternalServices.Delivery.Sendy
@@ -144,8 +145,11 @@ namespace RestaurantSystem.Infrastructure.ExternalServices.Delivery.Sendy
 
                 var data = result?.Data;
 
+                // Use centralized mapping
+                var mapped = SendyStatusMapper.MapToDeliveryPartnerStatus(data?.Status);
+
                 return (
-                    MapToInternalStatus(data?.Status),
+                    mapped,
                     data?.Status ?? "unknown",
                     data?.CourierName ?? string.Empty,
                     data?.CourierPhone ?? string.Empty,
@@ -189,22 +193,10 @@ namespace RestaurantSystem.Infrastructure.ExternalServices.Delivery.Sendy
             }
         }
 
+        // remove/reuse previous MapToInternalStatus - replace its body with call to mapper
         private static DeliveryPartnerStatus MapToInternalStatus(string? externalStatus)
         {
-            if (string.IsNullOrWhiteSpace(externalStatus))
-                return DeliveryPartnerStatus.Idle;
-
-            return externalStatus.Trim().ToLowerInvariant() switch
-            {
-                "pending" => DeliveryPartnerStatus.SearchingForDriver,
-                "confirmed" or "assigned" => DeliveryPartnerStatus.DriverAssigned,
-                "pickedup" or "picked_up" => DeliveryPartnerStatus.PickedUp,
-                "intransit" or "in_transit" => DeliveryPartnerStatus.PickedUp,
-                "delivered" => DeliveryPartnerStatus.Delivered,
-                "failed" => DeliveryPartnerStatus.Failed,
-                "cancelled" or "canceled" => DeliveryPartnerStatus.Cancelled,
-                _ => DeliveryPartnerStatus.Idle
-            };
+            return SendyStatusMapper.MapToDeliveryPartnerStatus(externalStatus);
         }
     }
 

@@ -8,6 +8,7 @@ using RestaurantSystem.Application.Services.Interfaces;
 using RestaurantSystem.Domain.Entities;
 using RestaurantSystem.Domain.Enums;
 using RestaurantSystem.Domain.Exceptions;
+using RestaurantSystem.Application.Integrations;
 
 namespace RestaurantSystem.Application.Services.Implementations
 {
@@ -179,6 +180,15 @@ namespace RestaurantSystem.Application.Services.Implementations
 
                     throw;
                 }
+            }
+
+            // Guard: disallow completing a Sendy-synced delivery unless provider reported Delivered
+            if (request.NewStatus == OrderStatus.Completed &&
+                order.OrderType == OrderType.Delivery &&
+                (order.IsSyncedToExternalProvider || order.ExternalOrderId.HasValue) &&
+                order.ExternalDeliveryStatus != DeliveryPartnerStatus.Delivered)
+            {
+                throw new Exception("لا يمكن إكمال طلب توصيل مرتبط بـ Sendy قبل أن تكون حالة التوصيل Delivered");
             }
 
             order.Status = request.NewStatus;
@@ -393,18 +403,29 @@ namespace RestaurantSystem.Application.Services.Implementations
 
             if (success && externalId.HasValue)
             {
+                var (status, statusRaw, driverName, driverPhone, statusTrackingUrl) =
+                    await _deliveryIntegrationService.GetDeliveryStatusAsync(externalId.Value);
+
+                var finalStatus = status != DeliveryPartnerStatus.Idle
+                    ? status
+                    : DeliveryPartnerStatus.SearchingForDriver;
+
                 order.ExternalOrderId = externalId.Value;
                 order.ExternalPublicId = externalPublicId;
                 order.IsSyncedToExternalProvider = true;
-                order.ExternalDeliveryStatus = DeliveryPartnerStatus.SearchingForDriver;
+                order.ExternalDeliveryStatus = finalStatus;
                 order.LastExternalSyncDate = DateTime.UtcNow;
-                order.TrackingUrl = trackingUrl;
+                order.TrackingUrl = statusTrackingUrl ?? trackingUrl ?? order.TrackingUrl;
+                order.CourierName = string.IsNullOrWhiteSpace(driverName) ? order.CourierName : driverName;
+                order.CourierPhoneNumber = string.IsNullOrWhiteSpace(driverPhone) ? order.CourierPhoneNumber : driverPhone;
 
                 _logger.LogInformation(
-                    "✅ تمت مزامنة الطلب #{OrderNo} بنجاح مع Sendy. External ID: {ExtId}, PublicId: {PublicId}",
+                    "✅ تمت مزامنة الطلب #{OrderNo} بنجاح مع Sendy. External ID: {ExtId}, PublicId: {PublicId}, Status: {Status}, RawStatus: {RawStatus}",
                     order.OrderNumber,
                     externalId.Value,
-                    externalPublicId);
+                    externalPublicId,
+                    finalStatus,
+                    statusRaw);
             }
             else
             {
@@ -494,20 +515,31 @@ namespace RestaurantSystem.Application.Services.Implementations
             if (!externalId.HasValue)
                 throw new Exception("تم إرسال الطلب لكن Sendy لم يرجع ExternalOrderId");
 
+            var (status, statusRaw, driverName, driverPhone, statusTrackingUrl) =
+     await _deliveryIntegrationService.GetDeliveryStatusAsync(externalId.Value);
+
+            var finalStatus = status != DeliveryPartnerStatus.Idle
+                ? status
+                : DeliveryPartnerStatus.SearchingForDriver;
+
             order.ExternalOrderId = externalId.Value;
             order.ExternalPublicId = externalPublicId;
-            order.TrackingUrl = trackingUrl ?? order.TrackingUrl;
+            order.TrackingUrl = statusTrackingUrl ?? trackingUrl ?? order.TrackingUrl;
             order.IsSyncedToExternalProvider = true;
-            order.ExternalDeliveryStatus = DeliveryPartnerStatus.SearchingForDriver;
+            order.ExternalDeliveryStatus = finalStatus;
+            order.CourierName = string.IsNullOrWhiteSpace(driverName) ? order.CourierName : driverName;
+            order.CourierPhoneNumber = string.IsNullOrWhiteSpace(driverPhone) ? order.CourierPhoneNumber : driverPhone;
             order.LastExternalSyncDate = DateTime.UtcNow;
 
             await _orderRepository.UpdateAsync(order);
 
             _logger.LogInformation(
-                "✅ Order #{OrderNumber} pushed to Sendy successfully. ExternalId: {ExternalId}, PublicId: {PublicId}",
-                order.OrderNumber,
-                externalId.Value,
-                externalPublicId);
+      "✅ Order #{OrderNumber} pushed to Sendy successfully. ExternalId: {ExternalId}, PublicId: {PublicId}, Status: {Status}, RawStatus: {RawStatus}",
+      order.OrderNumber,
+      externalId.Value,
+      externalPublicId,
+      finalStatus,
+      statusRaw);
 
             return await GetOrderByIdAsync(order.Id);
         }
@@ -550,9 +582,12 @@ namespace RestaurantSystem.Application.Services.Implementations
 
             if (order.ExternalOrderId.HasValue)
             {
-                await _deliveryIntegrationService.CancelOrderAsync(
+                var cancelledInSendy = await _deliveryIntegrationService.CancelOrderAsync(
                     order.ExternalOrderId.Value,
                     "Restaurant cancelled the order");
+
+                if (!cancelledInSendy)
+                    throw new Exception("فشل إلغاء الطلب في Sendy، لم يتم إلغاء الطلب محلياً");
             }
 
             order.Status = OrderStatus.Cancelled;
@@ -693,7 +728,9 @@ namespace RestaurantSystem.Application.Services.Implementations
             if (externalStatus == DeliveryPartnerStatus.Delivered)
             {
                 order.Status = OrderStatus.Completed;
-                order.CompletedAt = DateTime.UtcNow;
+
+                if (!order.CompletedAt.HasValue)
+                    order.CompletedAt = DateTime.UtcNow;
             }
             else if (externalStatus == DeliveryPartnerStatus.Cancelled ||
                      externalStatus == DeliveryPartnerStatus.Failed ||
@@ -702,8 +739,9 @@ namespace RestaurantSystem.Application.Services.Implementations
                 order.Status = OrderStatus.Cancelled;
             }
             else if (externalStatus == DeliveryPartnerStatus.PickedUp ||
-                     externalStatus == DeliveryPartnerStatus.ArrivedAtCustomer ||
-                     externalStatus == DeliveryPartnerStatus.AtStore)
+          externalStatus == DeliveryPartnerStatus.InTransit ||
+          externalStatus == DeliveryPartnerStatus.ArrivedAtCustomer ||
+          externalStatus == DeliveryPartnerStatus.AtStore)
             {
                 order.Status = OrderStatus.Delivering;
             }
@@ -716,23 +754,7 @@ namespace RestaurantSystem.Application.Services.Implementations
 
         private static DeliveryPartnerStatus MapExternalStatus(string? status)
         {
-            if (string.IsNullOrWhiteSpace(status))
-                return DeliveryPartnerStatus.Idle;
-
-            return status.Trim().ToLowerInvariant() switch
-            {
-                "searching" or "pending" => DeliveryPartnerStatus.SearchingForDriver,
-                "confirmed" or "accepted" or "assigned" => DeliveryPartnerStatus.DriverAssigned,
-                "at_pickup" or "atpickup" or "arrived_at_store" => DeliveryPartnerStatus.AtStore,
-                "picked_up" or "pickedup" => DeliveryPartnerStatus.PickedUp,
-                "in_transit" or "intransit" => DeliveryPartnerStatus.PickedUp,
-                "at_destination" or "atdestination" or "arrived" => DeliveryPartnerStatus.ArrivedAtCustomer,
-                "delivered" or "completed" => DeliveryPartnerStatus.Delivered,
-                "cancelled" or "canceled" or "rejected" => DeliveryPartnerStatus.Cancelled,
-                "returned" => DeliveryPartnerStatus.Returned,
-                "failed" or "delivery_exception" or "deliveryexception" => DeliveryPartnerStatus.Failed,
-                _ => DeliveryPartnerStatus.Idle
-            };
+            return SendyStatusMapper.MapToDeliveryPartnerStatus(status);
         }
 
         private static string BuildCustomerName(Order order)

@@ -176,10 +176,17 @@ namespace RestaurantSystem.Api.Controllers
         [HttpPost("{id:guid}/cancel")]
         public async Task<ActionResult<ApiResponse<object>>> CancelOrder(Guid id)
         {
-            var result = await _orderService.CancelOrderAsync(id);
-            return result
-                ? Ok(ApiResponse<object>.Ok(null, "تم إلغاء الطلب"))
-                : BadRequest(ApiResponse<object>.Fail("لا يمكن إلغاء الطلب في حالته الحالية"));
+            try
+            {
+                var result = await _orderService.CancelOrderAsync(id);
+                return result
+                    ? Ok(ApiResponse<object>.Ok(null, "تم إلغاء الطلب"))
+                    : BadRequest(ApiResponse<object>.Fail("لا يمكن إلغاء الطلب في حالته الحالية"));
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(ApiResponse<object>.Fail(ex.Message));
+            }
         }
 
         [Authorize(Roles = "Admin,Manager")]
