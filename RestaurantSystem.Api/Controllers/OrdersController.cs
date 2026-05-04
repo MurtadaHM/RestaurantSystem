@@ -179,6 +179,7 @@ namespace RestaurantSystem.Api.Controllers
             try
             {
                 var result = await _orderService.CancelOrderAsync(id);
+
                 return result
                     ? Ok(ApiResponse<object>.Ok(null, "تم إلغاء الطلب"))
                     : BadRequest(ApiResponse<object>.Fail("لا يمكن إلغاء الطلب في حالته الحالية"));
@@ -188,6 +189,7 @@ namespace RestaurantSystem.Api.Controllers
                 return BadRequest(ApiResponse<object>.Fail(ex.Message));
             }
         }
+
 
         [Authorize(Roles = "Admin,Manager")]
         [HttpGet("stats")]

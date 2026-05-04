@@ -54,20 +54,59 @@ namespace RestaurantSystem.Api.Controllers.Webhooks
                 });
             }
 
+            // Resolve external order id:
+            var externalOrderId = payload.Order?.Id ?? payload.OrderId;
+            // Resolve new status: prefer nested.to_status -> nested.status -> flat new_status
+            var newStatus =
+                payload.Order?.ToStatus ??
+                payload.Order?.Status ??
+                payload.NewStatus;
+
+            // Resolve other optional fields
+            var publicId = payload.Order?.PublicId;
+            var externalRef = payload.Order?.ExternalRef;
+            // For now prefer flat tracking and courier fields (as requested)
+            var trackingUrl = string.IsNullOrWhiteSpace(payload.TrackingUrl) ? null : payload.TrackingUrl;
+            var courierName = string.IsNullOrWhiteSpace(payload.CourierName) ? null : payload.CourierName;
+            var courierPhone = string.IsNullOrWhiteSpace(payload.CourierPhone) ? null : payload.CourierPhone;
+            var eventType = payload.EventType;
+
+            if (!externalOrderId.HasValue || externalOrderId == Guid.Empty)
+            {
+                _logger.LogWarning("⚠️ Webhook missing external order id. EventType: {EventType}", eventType);
+                return BadRequest(new
+                {
+                    success = false,
+                    message = "Webhook order id is required."
+                });
+            }
+
+            if (string.IsNullOrWhiteSpace(newStatus))
+            {
+                _logger.LogWarning("⚠️ Webhook missing new status for external order {ExternalOrderId}", externalOrderId);
+                return BadRequest(new
+                {
+                    success = false,
+                    message = "Webhook status is required."
+                });
+            }
+
             try
             {
                 _logger.LogInformation(
-                    "🔔 Webhook received for external order {OrderId}. EventType: {EventType}, NewStatus: {Status}",
-                    payload.OrderId,
-                    payload.EventType,
-                    payload.NewStatus);
+                    "🔔 Webhook received. EventType: {EventType}, ExternalOrderId: {ExternalOrderId}, PublicId: {PublicId}, ExternalRef: {ExternalRef}, NewStatus: {NewStatus}",
+                    eventType,
+                    externalOrderId,
+                    publicId,
+                    externalRef,
+                    newStatus);
 
                 var updatedOrder = await _orderService.UpdateExternalStatusFromWebhookAsync(
-                    payload.OrderId,
-                    payload.NewStatus,
-                    payload.CourierName,
-                    payload.CourierPhone,
-                    payload.TrackingUrl);
+                    externalOrderId.Value,
+                    newStatus,
+                    courierName,
+                    courierPhone,
+                    trackingUrl);
 
                 _logger.LogInformation(
                     "✅ Webhook processed successfully for local order #{OrderNumber}. External status: {ExternalStatus}",
@@ -89,8 +128,8 @@ namespace RestaurantSystem.Api.Controllers.Webhooks
             {
                 _logger.LogError(
                     ex,
-                    "🚨 Webhook processing failed for external order {OrderId}",
-                    payload.OrderId);
+                    "🚨 Webhook processing failed for external order {ExternalOrderId}",
+                    externalOrderId);
 
                 return StatusCode(StatusCodes.Status500InternalServerError, new
                 {

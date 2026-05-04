@@ -404,7 +404,7 @@ namespace RestaurantSystem.Application.Services.Implementations
             if (success && externalId.HasValue)
             {
                 var (status, statusRaw, driverName, driverPhone, statusTrackingUrl) =
-                    await _deliveryIntegrationService.GetDeliveryStatusAsync(externalId.Value);
+    await _deliveryIntegrationService.GetDeliveryStatusAsync(externalId.Value);
 
                 var finalStatus = status != DeliveryPartnerStatus.Idle
                     ? status
