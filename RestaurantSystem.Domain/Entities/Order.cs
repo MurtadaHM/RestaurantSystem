@@ -39,6 +39,13 @@ namespace RestaurantSystem.Domain.Entities
         // Navigation Properties
         public User? User { get; set; }
         public Table? Table { get; set; }
+
+      
+
+        public Guid? CustomerId { get; set; }
+        public Customer? Customer { get; set; }
+
+
         public ICollection<OrderItem> OrderItems { get; set; } = new List<OrderItem>();
         public Payment? Payment { get; set; }
 

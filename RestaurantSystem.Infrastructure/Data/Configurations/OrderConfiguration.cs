@@ -102,6 +102,12 @@ namespace RestaurantSystem.Infrastructure.Data.Configurations
             // 6. الفهارس (Indexes) - حاسمة للأداء
             builder.HasIndex(o => o.UserId).HasDatabaseName("IX_Orders_UserId");
             builder.HasIndex(o => o.Status).HasDatabaseName("IX_Orders_Status");
+            builder.Property(o => o.CustomerId)
+    .HasColumnType("uuid");
+
+            builder.HasIndex(o => o.CustomerId)
+                .HasDatabaseName("IX_Orders_CustomerId");
+
 
             // 🔥 فهرس المعرف الخارجي (مهم جداً لسرعة استجابة الـ Webhook)
             builder.HasIndex(o => o.ExternalOrderId)
@@ -117,6 +123,11 @@ namespace RestaurantSystem.Infrastructure.Data.Configurations
                 .WithMany(t => t.Orders)
                 .HasForeignKey(o => o.TableId)
                 .OnDelete(DeleteBehavior.SetNull);
+
+            builder.HasOne(o => o.Customer)
+    .WithMany(c => c.Orders)
+    .HasForeignKey(o => o.CustomerId)
+    .OnDelete(DeleteBehavior.SetNull);
 
             // فلتر الحذف الناعم
             builder.HasQueryFilter(o => !o.IsDeleted);
