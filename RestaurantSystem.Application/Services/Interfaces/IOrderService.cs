@@ -1,4 +1,5 @@
 ﻿using RestaurantSystem.Application.DTOs.Orders;
+using RestaurantSystem.Application.DTOs.PublicOrders;
 using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;

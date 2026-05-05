@@ -74,11 +74,10 @@ namespace RestaurantSystem.Infrastructure.Migrations
                 table: "MenuItemIngredients",
                 column: "Id");
 
-            migrationBuilder.CreateIndex(
-                name: "IX_MenuItemIngredients_MenuItemId_IngredientId",
-                table: "MenuItemIngredients",
-                columns: new[] { "MenuItemId", "IngredientId" },
-                unique: true);
+            migrationBuilder.Sql("""
+                CREATE UNIQUE INDEX IF NOT EXISTS "IX_MenuItemIngredients_MenuItemId_IngredientId"
+                ON "MenuItemIngredients" ("MenuItemId", "IngredientId");
+                """);
         }
 
         /// <inheritdoc />
@@ -88,9 +87,9 @@ namespace RestaurantSystem.Infrastructure.Migrations
                 name: "PK_MenuItemIngredients",
                 table: "MenuItemIngredients");
 
-            migrationBuilder.DropIndex(
-                name: "IX_MenuItemIngredients_MenuItemId_IngredientId",
-                table: "MenuItemIngredients");
+            migrationBuilder.Sql("""
+                DROP INDEX IF EXISTS "IX_MenuItemIngredients_MenuItemId_IngredientId";
+                """);
 
             migrationBuilder.AlterColumn<decimal>(
                 name: "WastePercentage",

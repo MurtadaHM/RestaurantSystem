@@ -1,14 +1,17 @@
 ﻿using AutoMapper;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
+using RestaurantSystem.Application.Configurations;
 using RestaurantSystem.Application.Contracts.ExternalServices;
 using RestaurantSystem.Application.Contracts.Repositories;
 using RestaurantSystem.Application.Contracts.Signals;
 using RestaurantSystem.Application.DTOs.Orders;
+using RestaurantSystem.Application.DTOs.PublicOrders;
+using RestaurantSystem.Application.Integrations;
 using RestaurantSystem.Application.Services.Interfaces;
 using RestaurantSystem.Domain.Entities;
 using RestaurantSystem.Domain.Enums;
 using RestaurantSystem.Domain.Exceptions;
-using RestaurantSystem.Application.Integrations;
 
 namespace RestaurantSystem.Application.Services.Implementations
 {
@@ -18,31 +21,37 @@ namespace RestaurantSystem.Application.Services.Implementations
         private readonly IMenuRepository _menuRepository;
         private readonly IOrderDepartmentProgressRepository _orderDepartmentProgressRepository;
         private readonly ITableRepository _tableRepository;
+        private readonly ICustomerRepository _customerRepository;
         private readonly IMapper _mapper;
         private readonly IOrderNotificationService _notificationService;
         private readonly IInventoryService _inventoryService;
         private readonly ISendyIntegrationService _deliveryIntegrationService;
         private readonly ILogger<OrderService> _logger;
+        private readonly PublicOrderSettings _publicOrderSettings;
 
         public OrderService(
             IOrderRepository orderRepository,
             IMenuRepository menuRepository,
             IOrderDepartmentProgressRepository orderDepartmentProgressRepository,
             ITableRepository tableRepository,
+            ICustomerRepository customerRepository,
             IMapper mapper,
             IOrderNotificationService notificationService,
             IInventoryService inventoryService,
             ISendyIntegrationService deliveryIntegrationService,
+            IOptions<PublicOrderSettings> publicOrderSettings,
             ILogger<OrderService> logger)
         {
             _orderRepository = orderRepository;
             _menuRepository = menuRepository;
             _orderDepartmentProgressRepository = orderDepartmentProgressRepository;
             _tableRepository = tableRepository;
+            _customerRepository = customerRepository;
             _mapper = mapper;
             _notificationService = notificationService;
             _inventoryService = inventoryService;
             _deliveryIntegrationService = deliveryIntegrationService;
+            _publicOrderSettings = publicOrderSettings.Value;
             _logger = logger;
         }
 
@@ -59,6 +68,7 @@ namespace RestaurantSystem.Application.Services.Implementations
             {
                 OrderNumber = nextOrderNumber,
                 UserId = request.UserId,
+                CustomerId = request.CustomerId,
                 TableId = request.TableId,
                 OrderType = request.OrderType,
                 SpecialNotes = request.SpecialNotes ?? string.Empty,
@@ -158,6 +168,78 @@ namespace RestaurantSystem.Application.Services.Implementations
             return response;
         }
 
+        public async Task<OrderResponseDto> CreatePublicTableOrderAsync(
+            string tableCode,
+            CreatePublicTableOrderRequestDto request)
+        {
+            if (string.IsNullOrWhiteSpace(tableCode))
+                throw new Exception("كود الطاولة مطلوب");
+
+            if (request.Items == null || !request.Items.Any())
+                throw new Exception("يجب إضافة عنصر واحد على الأقل للطلب");
+
+            var table = await _tableRepository.GetByCodeAsync(tableCode.Trim());
+
+            if (table == null)
+                throw new Exception("الطاولة غير موجودة");
+
+            if (!table.IsActive)
+                throw new Exception("الطاولة غير فعالة");
+
+            if (!table.IsOrderingEnabled)
+                throw new Exception("الطلب الإلكتروني غير متاح لهذه الطاولة");
+
+            if (string.IsNullOrWhiteSpace(request.CustomerPhone))
+                throw new Exception("رقم الهاتف مطلوب");
+
+            var phone = request.CustomerPhone.Trim();
+
+            var customer = await _customerRepository.GetByPhoneNumberAsync(phone);
+
+            if (customer == null)
+            {
+                customer = new Customer
+                {
+                    FullName = string.IsNullOrWhiteSpace(request.CustomerName)
+                        ? null
+                        : request.CustomerName.Trim(),
+                    PhoneNumber = phone,
+                    CreatedAt = DateTime.UtcNow
+                };
+
+                await _customerRepository.AddAsync(customer);
+                await _customerRepository.SaveChangesAsync();
+            }
+            else if (string.IsNullOrWhiteSpace(customer.FullName) &&
+                     !string.IsNullOrWhiteSpace(request.CustomerName))
+            {
+                customer.FullName = request.CustomerName.Trim();
+                await _customerRepository.SaveChangesAsync();
+            }
+
+            if (_publicOrderSettings.FallbackUserId == Guid.Empty)
+                throw new InvalidOperationException("PublicOrderSettings:FallbackUserId is missing or invalid.");
+
+            var createRequest = new CreateOrderRequestDto
+            {
+                UserId = _publicOrderSettings.FallbackUserId,
+                TableId = table.Id,
+                CustomerId = customer.Id,
+                OrderType = OrderType.DineIn,
+                SpecialNotes = request.SpecialNotes,
+                DeliveryFee = 0,
+                CustomerPhoneNumber = phone,
+                Items = request.Items.Select(i => new CreateOrderItemDto
+                {
+                    MenuItemId = i.MenuItemId,
+                    Quantity = i.Quantity,
+                    SpecialInstructions = i.SpecialInstructions
+                }).ToList()
+            };
+
+            return await CreateOrderAsync(createRequest);
+        }
+
         public async Task<OrderResponseDto> UpdateOrderStatusAsync(Guid id, UpdateOrderStatusRequestDto request)
         {
             var order = await _orderRepository.GetOrderWithDetailsAsync(id);
@@ -182,7 +264,6 @@ namespace RestaurantSystem.Application.Services.Implementations
                 }
             }
 
-            // Guard: disallow completing a Sendy-synced delivery unless provider reported Delivered
             if (request.NewStatus == OrderStatus.Completed &&
                 order.OrderType == OrderType.Delivery &&
                 (order.IsSyncedToExternalProvider || order.ExternalOrderId.HasValue) &&
@@ -192,10 +273,9 @@ namespace RestaurantSystem.Application.Services.Implementations
             }
 
             order.Status = request.NewStatus;
+
             if (request.NewStatus == OrderStatus.Completed && !order.CompletedAt.HasValue)
-            {
                 order.CompletedAt = DateTime.UtcNow;
-            }
 
             if (request.NewStatus == OrderStatus.Confirmed &&
                 order.OrderType == OrderType.Delivery &&
@@ -207,9 +287,7 @@ namespace RestaurantSystem.Application.Services.Implementations
             await _orderRepository.UpdateAsync(order);
 
             if (IsTerminalOrderStatus(request.NewStatus))
-            {
                 await FreeTableIfNoActiveDineInOrdersAsync(order);
-            }
 
             await _notificationService.NotifyOrderStatusChangedAsync(
                 id,
@@ -250,18 +328,12 @@ namespace RestaurantSystem.Application.Services.Implementations
             progress.Notes = request.Notes;
 
             if (request.NewStatus == OrderDepartmentStatus.Preparing && !progress.StartedAt.HasValue)
-            {
                 progress.StartedAt = DateTime.UtcNow;
-            }
 
             if (request.NewStatus == OrderDepartmentStatus.Ready)
-            {
                 progress.ReadyAt = DateTime.UtcNow;
-            }
             else
-            {
                 progress.ReadyAt = null;
-            }
 
             await _orderDepartmentProgressRepository.UpdateAsync(progress);
             await _orderDepartmentProgressRepository.SaveChangesAsync();
@@ -316,9 +388,7 @@ namespace RestaurantSystem.Application.Services.Implementations
             await _orderRepository.UpdateAsync(order);
 
             if (IsTerminalOrderStatus(order.Status))
-            {
                 await FreeTableIfNoActiveDineInOrdersAsync(order);
-            }
 
             await _notificationService.NotifyExternalDeliveryUpdateAsync(
                 order.Id,
@@ -352,9 +422,7 @@ namespace RestaurantSystem.Application.Services.Implementations
             await _orderRepository.UpdateAsync(order);
 
             if (IsTerminalOrderStatus(order.Status))
-            {
                 await FreeTableIfNoActiveDineInOrdersAsync(order);
-            }
 
             await _notificationService.NotifyExternalDeliveryUpdateAsync(
                 order.Id,
@@ -378,9 +446,7 @@ namespace RestaurantSystem.Application.Services.Implementations
 
             var paymentMethod = "cash";
             if (order.Payment != null)
-            {
                 paymentMethod = MapPaymentMethod(order.Payment.PaymentMethod.ToString());
-            }
 
             var pushRequest = new IntegrationPushOrderRequest
             {
@@ -404,7 +470,7 @@ namespace RestaurantSystem.Application.Services.Implementations
             if (success && externalId.HasValue)
             {
                 var (status, statusRaw, driverName, driverPhone, statusTrackingUrl) =
-    await _deliveryIntegrationService.GetDeliveryStatusAsync(externalId.Value);
+                    await _deliveryIntegrationService.GetDeliveryStatusAsync(externalId.Value);
 
                 var finalStatus = status != DeliveryPartnerStatus.Idle
                     ? status
@@ -447,6 +513,7 @@ namespace RestaurantSystem.Application.Services.Implementations
 
             return order.IsSyncedToExternalProvider;
         }
+
         public async Task<OrderResponseDto> PushOrderToSendyAsync(Guid orderId)
         {
             _logger.LogInformation("🔁 PushOrderToSendyAsync called for order {OrderId}", orderId);
@@ -516,7 +583,7 @@ namespace RestaurantSystem.Application.Services.Implementations
                 throw new Exception("تم إرسال الطلب لكن Sendy لم يرجع ExternalOrderId");
 
             var (status, statusRaw, driverName, driverPhone, statusTrackingUrl) =
-     await _deliveryIntegrationService.GetDeliveryStatusAsync(externalId.Value);
+                await _deliveryIntegrationService.GetDeliveryStatusAsync(externalId.Value);
 
             var finalStatus = status != DeliveryPartnerStatus.Idle
                 ? status
@@ -534,12 +601,12 @@ namespace RestaurantSystem.Application.Services.Implementations
             await _orderRepository.UpdateAsync(order);
 
             _logger.LogInformation(
-      "✅ Order #{OrderNumber} pushed to Sendy successfully. ExternalId: {ExternalId}, PublicId: {PublicId}, Status: {Status}, RawStatus: {RawStatus}",
-      order.OrderNumber,
-      externalId.Value,
-      externalPublicId,
-      finalStatus,
-      statusRaw);
+                "✅ Order #{OrderNumber} pushed to Sendy successfully. ExternalId: {ExternalId}, PublicId: {PublicId}, Status: {Status}, RawStatus: {RawStatus}",
+                order.OrderNumber,
+                externalId.Value,
+                externalPublicId,
+                finalStatus,
+                statusRaw);
 
             return await GetOrderByIdAsync(order.Id);
         }
@@ -739,9 +806,9 @@ namespace RestaurantSystem.Application.Services.Implementations
                 order.Status = OrderStatus.Cancelled;
             }
             else if (externalStatus == DeliveryPartnerStatus.PickedUp ||
-          externalStatus == DeliveryPartnerStatus.InTransit ||
-          externalStatus == DeliveryPartnerStatus.ArrivedAtCustomer ||
-          externalStatus == DeliveryPartnerStatus.AtStore)
+                     externalStatus == DeliveryPartnerStatus.InTransit ||
+                     externalStatus == DeliveryPartnerStatus.ArrivedAtCustomer ||
+                     externalStatus == DeliveryPartnerStatus.AtStore)
             {
                 order.Status = OrderStatus.Delivering;
             }

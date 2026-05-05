@@ -43,6 +43,10 @@ namespace RestaurantSystem.Infrastructure
             services.AddScoped<IDepartmentRepository, DepartmentRepository>();
             services.AddScoped<IReservationRepository, ReservationRepository>();
             services.AddScoped<IIngredientRepository, IngredientRepository>();
+            services.AddScoped<ICustomerRepository, CustomerRepository>();
+
+            services.Configure<PublicOrderSettings>(
+                configuration.GetSection("PublicOrderSettings"));
 
             services.AddHttpClient<IAiDiagnosticService, AiDiagnosticService>(client =>
             {

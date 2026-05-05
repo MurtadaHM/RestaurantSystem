@@ -9,7 +9,7 @@ namespace RestaurantSystem.Application.DTOs.Orders
     {
         [Required(ErrorMessage = "معرّف المستخدم مطلوب")]
         public Guid UserId { get; set; }
-
+        public Guid? CustomerId { get; set; }
         public Guid? TableId { get; set; }
 
         [Required(ErrorMessage = "نوع الطلب مطلوب")]

@@ -40,6 +40,8 @@ namespace RestaurantSystem.Application
             // 7) FluentValidation
             services.AddValidatorsFromAssembly(typeof(DependencyInjection).Assembly);
 
+
+
             return services;
         }
     }

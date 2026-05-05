@@ -1,5 +1,4 @@
-﻿using System;
-using Microsoft.EntityFrameworkCore.Migrations;
+﻿using Microsoft.EntityFrameworkCore.Migrations;
 
 #nullable disable
 
@@ -11,56 +10,44 @@ namespace RestaurantSystem.Infrastructure.Migrations
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
         {
-            migrationBuilder.CreateTable(
-                name: "OrderDepartmentProgresses",
-                columns: table => new
-                {
-                    Id = table.Column<Guid>(type: "uuid", nullable: false),
-                    OrderId = table.Column<Guid>(type: "uuid", nullable: false),
-                    DepartmentId = table.Column<Guid>(type: "uuid", nullable: false),
-                    Status = table.Column<string>(type: "text", nullable: false),
-                    StartedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
-                    ReadyAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
-                    Notes = table.Column<string>(type: "character varying(500)", maxLength: 500, nullable: true),
-                    CreatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
-                    UpdatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
-                    IsDeleted = table.Column<bool>(type: "boolean", nullable: false),
-                    DeletedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true)
-                },
-                constraints: table =>
-                {
-                    table.PrimaryKey("PK_OrderDepartmentProgresses", x => x.Id);
-                    table.ForeignKey(
-                        name: "FK_OrderDepartmentProgresses_Departments_DepartmentId",
-                        column: x => x.DepartmentId,
-                        principalTable: "Departments",
-                        principalColumn: "Id",
-                        onDelete: ReferentialAction.Restrict);
-                    table.ForeignKey(
-                        name: "FK_OrderDepartmentProgresses_Orders_OrderId",
-                        column: x => x.OrderId,
-                        principalTable: "Orders",
-                        principalColumn: "Id",
-                        onDelete: ReferentialAction.Cascade);
-                });
+            migrationBuilder.Sql("""
+                CREATE TABLE IF NOT EXISTS "OrderDepartmentProgresses" (
+                    "Id" uuid NOT NULL,
+                    "OrderId" uuid NOT NULL,
+                    "DepartmentId" uuid NOT NULL,
+                    "Status" text NOT NULL,
+                    "StartedAt" timestamp with time zone,
+                    "ReadyAt" timestamp with time zone,
+                    "Notes" character varying(500),
+                    "CreatedAt" timestamp with time zone NOT NULL,
+                    "UpdatedAt" timestamp with time zone,
+                    "IsDeleted" boolean NOT NULL,
+                    "DeletedAt" timestamp with time zone,
+                    CONSTRAINT "PK_OrderDepartmentProgresses" PRIMARY KEY ("Id"),
+                    CONSTRAINT "FK_OrderDepartmentProgresses_Departments_DepartmentId"
+                        FOREIGN KEY ("DepartmentId") REFERENCES "Departments" ("Id") ON DELETE RESTRICT,
+                    CONSTRAINT "FK_OrderDepartmentProgresses_Orders_OrderId"
+                        FOREIGN KEY ("OrderId") REFERENCES "Orders" ("Id") ON DELETE CASCADE
+                );
+                """);
 
-            migrationBuilder.CreateIndex(
-                name: "IX_OrderDepartmentProgress_OrderId_DepartmentId",
-                table: "OrderDepartmentProgresses",
-                columns: new[] { "OrderId", "DepartmentId" },
-                unique: true);
+            migrationBuilder.Sql("""
+                CREATE UNIQUE INDEX IF NOT EXISTS "IX_OrderDepartmentProgress_OrderId_DepartmentId"
+                ON "OrderDepartmentProgresses" ("OrderId", "DepartmentId");
+                """);
 
-            migrationBuilder.CreateIndex(
-                name: "IX_OrderDepartmentProgresses_DepartmentId",
-                table: "OrderDepartmentProgresses",
-                column: "DepartmentId");
+            migrationBuilder.Sql("""
+                CREATE INDEX IF NOT EXISTS "IX_OrderDepartmentProgresses_DepartmentId"
+                ON "OrderDepartmentProgresses" ("DepartmentId");
+                """);
         }
 
         /// <inheritdoc />
         protected override void Down(MigrationBuilder migrationBuilder)
         {
-            migrationBuilder.DropTable(
-                name: "OrderDepartmentProgresses");
+            migrationBuilder.Sql("""
+                DROP TABLE IF EXISTS "OrderDepartmentProgresses";
+                """);
         }
     }
 }
