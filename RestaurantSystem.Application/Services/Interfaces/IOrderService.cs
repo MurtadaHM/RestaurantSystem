@@ -40,5 +40,9 @@ namespace RestaurantSystem.Application.Services.Interfaces
 
         // Push local delivery order to Sendy
         Task<OrderResponseDto> PushOrderToSendyAsync(Guid orderId);
+
+        Task<OrderResponseDto> CreatePublicTableOrderAsync(
+    string tableCode,
+    CreatePublicTableOrderRequestDto request);
     }
 }
