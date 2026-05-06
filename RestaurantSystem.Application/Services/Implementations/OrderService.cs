@@ -734,6 +734,11 @@ namespace RestaurantSystem.Application.Services.Implementations
                 table.Status = TableStatus.Occupied;
                 await _tableRepository.UpdateAsync(table);
 
+                await _notificationService.NotifyTableStatusChangedAsync(
+                    table.Id,
+                    table.TableNumber,
+                    table.Status.ToString());
+
                 _logger.LogInformation(
                     "🍽️ تم تغيير حالة الطاولة {TableNumber} إلى Occupied بسبب الطلب #{OrderNumber}",
                     table.TableNumber,
@@ -764,6 +769,11 @@ namespace RestaurantSystem.Application.Services.Implementations
             {
                 table.Status = TableStatus.Available;
                 await _tableRepository.UpdateAsync(table);
+
+                await _notificationService.NotifyTableStatusChangedAsync(
+                    table.Id,
+                    table.TableNumber,
+                    table.Status.ToString());
 
                 _logger.LogInformation(
                     "🟢 تم تحرير الطاولة {TableNumber} بعد إنهاء/إلغاء الطلب #{OrderNumber}",

@@ -5,33 +5,47 @@ namespace RestaurantSystem.Application.Contracts.Signals
 {
     /// <summary>
     /// واجهة إدارة التنبيهات الفورية (SignalR)
-    /// مسؤولة عن إبقاء جميع أطراف النظام (مطبخ، كاشير، زبون) على اطلاع بلحظة بلحظة
+    /// مسؤولة عن إبقاء جميع أطراف النظام على اطلاع بلحظة بلحظة
     /// </summary>
     public interface IOrderNotificationService
     {
         /// <summary>
-        /// إرسال تنبيه بوجود طلب جديد (للكاشير وشاشة المطبخ)
-        /// استخدمنا OrderResponseDto لضمان وصول الـ OrderNumber والبيانات كاملة
+        /// إرسال تنبيه بوجود طلب جديد
         /// </summary>
         Task NotifyNewOrderAsync(OrderResponseDto orderResponse);
 
         /// <summary>
-        /// إرسال تنبيه لقسم معين (مثل إرسال طلبات المشويات للمطبخ فقط)
+        /// إرسال تنبيه لقسم معين
         /// </summary>
         Task NotifyDepartmentAsync(string departmentId, object message);
 
         /// <summary>
-        /// تنبيه بتغيير حالة الطلب الداخلية (مثلاً: جاري التحضير، جاهز)
+        /// تنبيه بتغيير حالة الطلب الداخلية
         /// </summary>
-        /// <param name="orderId">المعرف الفريد</param>
-        /// <param name="orderNumber">الرقم البسيط ليظهر في التنبيه (مثلاً: طلب #105 جاهز)</param>
-        /// <param name="newStatus">الحالة الجديدة</param>
         Task NotifyOrderStatusChangedAsync(Guid orderId, int orderNumber, string newStatus);
 
         /// <summary>
-        /// 🆕 تنبيه خاص بتحديثات شركة التوصيل (سندي)
-        /// يُستخدم لإبلاغ الزبون بمكان السائق أو عندما يتم استلام الطلب منه
+        /// تنبيه خاص بتحديثات شركة التوصيل
         /// </summary>
-        Task NotifyExternalDeliveryUpdateAsync(Guid orderId, int orderNumber, DeliveryPartnerStatus externalStatus, string message);
+        Task NotifyExternalDeliveryUpdateAsync(
+            Guid orderId,
+            int orderNumber,
+            DeliveryPartnerStatus externalStatus,
+            string message);
+
+        /// <summary>
+        /// تنبيه بتغيير حالة الطاولة
+        /// </summary>
+        Task NotifyTableStatusChangedAsync(
+            Guid tableId,
+            string tableNumber,
+            string newStatus);
+
+        /// <summary>
+        /// تنبيه بتغيير حالة الحجز
+        /// </summary>
+        Task NotifyReservationStatusChangedAsync(
+            Guid reservationId,
+            string newStatus);
     }
 }
