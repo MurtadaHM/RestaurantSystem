@@ -1,6 +1,7 @@
 ﻿using AutoMapper;
 using Microsoft.Extensions.Logging;
 using RestaurantSystem.Application.Contracts.Repositories;
+using RestaurantSystem.Application.DTOs.ActivityLogs;
 using RestaurantSystem.Application.DTOs.Inventory;
 using RestaurantSystem.Application.Services.Interfaces;
 using RestaurantSystem.Domain.Entities;
@@ -13,17 +14,20 @@ namespace RestaurantSystem.Application.Services.Implementations
     {
         private readonly IIngredientRepository _ingredientRepo;
         private readonly IOrderRepository _orderRepo;
+        private readonly IActivityLogService _activityLogService;
         private readonly IMapper _mapper;
         private readonly ILogger<InventoryService> _logger;
 
         public InventoryService(
             IIngredientRepository ingredientRepo,
             IOrderRepository orderRepo,
+            IActivityLogService activityLogService,
             IMapper mapper,
             ILogger<InventoryService> logger)
         {
             _ingredientRepo = ingredientRepo;
             _orderRepo = orderRepo;
+            _activityLogService = activityLogService;
             _mapper = mapper;
             _logger = logger;
         }
@@ -60,6 +64,19 @@ namespace RestaurantSystem.Application.Services.Implementations
             await _ingredientRepo.AddAsync(ingredient);
             await _ingredientRepo.SaveChangesAsync();
 
+            await SafeLogActivityAsync(new CreateActivityLogDto
+            {
+                UserId = null,
+                UserName = "System",
+                UserRole = "System",
+                ActionType = ActivityActionType.Created,
+                Module = "Inventory",
+                EntityName = nameof(Ingredient),
+                EntityId = ingredient.Id,
+                Description = $"Created ingredient '{ingredient.Name}' with opening stock {ingredient.CurrentStock} {ingredient.Unit}.",
+                NewValue = $"Name={ingredient.Name}; Stock={ingredient.CurrentStock}; Unit={ingredient.Unit}; MinThreshold={ingredient.MinThreshold}; UnitPrice={ingredient.UnitPrice}"
+            });
+
             _logger.LogInformation(
                 "✨ تم تعريف {Name} برصيد افتتاحي {Qty}",
                 ingredient.Name,
@@ -74,7 +91,6 @@ namespace RestaurantSystem.Application.Services.Implementations
             {
                 _logger.LogInformation("🔄 تحديث وصفة الطبق {Id}", menuItemId);
 
-                // حذف فعلي للوصفة القديمة لتجنب duplicate key
                 await _ingredientRepo.HardDeleteRecipeByMenuItemIdAsync(menuItemId);
                 await _ingredientRepo.SaveChangesAsync();
 
@@ -96,6 +112,20 @@ namespace RestaurantSystem.Application.Services.Implementations
                 }
 
                 await _ingredientRepo.SaveChangesAsync();
+
+                await SafeLogActivityAsync(new CreateActivityLogDto
+                {
+                    UserId = null,
+                    UserName = "System",
+                    UserRole = "System",
+                    ActionType = ActivityActionType.Updated,
+                    Module = "Inventory",
+                    EntityName = nameof(MenuItemIngredient),
+                    EntityId = menuItemId,
+                    Description = $"Updated recipe for menu item {menuItemId}.",
+                    NewValue = $"IngredientsCount={ingredients.Count}"
+                });
+
                 return true;
             }
             catch (Exception ex)
@@ -191,10 +221,13 @@ namespace RestaurantSystem.Application.Services.Implementations
                 throw new ValidationException(message);
             }
 
+            var deductionDetails = new List<string>();
+
             foreach (var kvp in requiredIngredients)
             {
                 var ingredient = kvp.Value.Ingredient;
                 var totalToDeduct = kvp.Value.RequiredQuantity;
+                var oldStock = ingredient.CurrentStock;
 
                 ingredient.CurrentStock -= totalToDeduct;
 
@@ -211,6 +244,9 @@ namespace RestaurantSystem.Application.Services.Implementations
                     MovementDate = DateTime.UtcNow
                 });
 
+                deductionDetails.Add(
+                    $"{ingredient.Name}: {oldStock} -> {ingredient.CurrentStock} {ingredient.Unit} (-{totalToDeduct})");
+
                 _logger.LogInformation(
                     "✅ تم خصم {Qty} من المادة {IngredientName} للطلب #{OrderNo}",
                     totalToDeduct,
@@ -221,6 +257,20 @@ namespace RestaurantSystem.Application.Services.Implementations
             order.IsStockDeducted = true;
 
             await _ingredientRepo.SaveChangesAsync();
+
+            await SafeLogActivityAsync(new CreateActivityLogDto
+            {
+                UserId = order.UserId,
+                UserName = BuildOrderUserName(order),
+                UserRole = null,
+                ActionType = ActivityActionType.StockDeducted,
+                Module = "Inventory",
+                EntityName = nameof(Order),
+                EntityId = order.Id,
+                Description = $"Deducted stock for order #{order.OrderNumber}.",
+                NewValue = string.Join(" | ", deductionDetails)
+            });
+
             return true;
         }
 
@@ -229,6 +279,8 @@ namespace RestaurantSystem.Application.Services.Implementations
             var ingredient = await _ingredientRepo.GetByIdAsync(request.IngredientId);
             if (ingredient == null)
                 return false;
+
+            var oldStock = ingredient.CurrentStock;
 
             ingredient.CurrentStock += request.Quantity;
 
@@ -246,6 +298,21 @@ namespace RestaurantSystem.Application.Services.Implementations
             });
 
             await _ingredientRepo.SaveChangesAsync();
+
+            await SafeLogActivityAsync(new CreateActivityLogDto
+            {
+                UserId = null,
+                UserName = "System",
+                UserRole = "System",
+                ActionType = ActivityActionType.StockUpdated,
+                Module = "Inventory",
+                EntityName = nameof(Ingredient),
+                EntityId = ingredient.Id,
+                Description = $"Added {request.Quantity} {ingredient.Unit} to ingredient '{ingredient.Name}'. Stock changed from {oldStock} to {ingredient.CurrentStock}.",
+                OldValue = oldStock.ToString(),
+                NewValue = ingredient.CurrentStock.ToString()
+            });
+
             return true;
         }
 
@@ -263,15 +330,63 @@ namespace RestaurantSystem.Application.Services.Implementations
             if (ingredient == null)
                 return false;
 
+            var oldValue =
+                $"Name={ingredient.Name}; Stock={ingredient.CurrentStock}; Unit={ingredient.Unit}; MinThreshold={ingredient.MinThreshold}; UnitPrice={ingredient.UnitPrice}";
+
             ingredient.Name = request.Name;
             ingredient.Unit = request.Unit;
             ingredient.MinThreshold = request.MinThreshold;
             ingredient.UnitPrice = request.UnitPrice;
             ingredient.CurrentStock = request.InitialStock;
 
+            var newValue =
+                $"Name={ingredient.Name}; Stock={ingredient.CurrentStock}; Unit={ingredient.Unit}; MinThreshold={ingredient.MinThreshold}; UnitPrice={ingredient.UnitPrice}";
+
             _ingredientRepo.Update(ingredient);
             await _ingredientRepo.SaveChangesAsync();
+
+            await SafeLogActivityAsync(new CreateActivityLogDto
+            {
+                UserId = null,
+                UserName = "System",
+                UserRole = "System",
+                ActionType = ActivityActionType.StockUpdated,
+                Module = "Inventory",
+                EntityName = nameof(Ingredient),
+                EntityId = ingredient.Id,
+                Description = $"Updated ingredient '{ingredient.Name}'.",
+                OldValue = oldValue,
+                NewValue = newValue
+            });
+
             return true;
+        }
+
+        private async Task SafeLogActivityAsync(CreateActivityLogDto dto)
+        {
+            try
+            {
+                await _activityLogService.LogAsync(dto);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(
+                    ex,
+                    "⚠️ Failed to write activity log. Module: {Module}, Action: {ActionType}, Entity: {EntityName}, EntityId: {EntityId}",
+                    dto.Module,
+                    dto.ActionType,
+                    dto.EntityName,
+                    dto.EntityId);
+            }
+        }
+
+        private static string BuildOrderUserName(Order order)
+        {
+            var firstName = order.User?.FirstName?.Trim() ?? string.Empty;
+            var lastName = order.User?.LastName?.Trim() ?? string.Empty;
+            var fullName = $"{firstName} {lastName}".Trim();
+
+            return string.IsNullOrWhiteSpace(fullName) ? "System" : fullName;
         }
     }
 }
