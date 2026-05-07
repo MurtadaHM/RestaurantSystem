@@ -1,4 +1,5 @@
 ﻿using RestaurantSystem.Application.DTOs.Auth;
+using RestaurantSystem.Application.DTOs.ActivityLogs;
 using RestaurantSystem.Domain.Entities;
 using RestaurantSystem.Domain.Enums;
 using System.Security.Claims;
@@ -18,11 +19,16 @@ namespace RestaurantSystem.Application.Services.Implementations
     {
         private readonly IUserRepository _userRepository;
         private readonly IConfiguration _configuration;
+        private readonly IActivityLogService _activityLogService;
 
-        public AuthService(IUserRepository userRepository, IConfiguration configuration)
+        public AuthService(
+            IUserRepository userRepository,
+            IConfiguration configuration,
+            IActivityLogService activityLogService)
         {
             _userRepository = userRepository;
             _configuration = configuration;
+            _activityLogService = activityLogService;
         }
 
         public async Task<AuthResponseDto> LoginAsync(LoginRequestDto request)
@@ -49,6 +55,19 @@ namespace RestaurantSystem.Application.Services.Implementations
 
             user.LastLoginAt = DateTime.UtcNow;
             await _userRepository.UpdateAsync(user);
+
+            await SafeLogActivityAsync(new CreateActivityLogDto
+            {
+                UserId = user.Id,
+                UserName = BuildUserName(user),
+                UserRole = user.Role.ToString(),
+                ActionType = ActivityActionType.Login,
+                Module = "Auth",
+                EntityName = nameof(User),
+                EntityId = user.Id,
+                Description = $"User '{BuildUserName(user)}' logged in successfully.",
+                NewValue = $"Email={user.Email}; Role={user.Role}; LastLoginAt={user.LastLoginAt:O}"
+            });
 
             var token = GenerateJwtToken(user);
             var expiryInMinutes = double.Parse(_configuration["Jwt:ExpiryInMinutes"] ?? "1440");
@@ -98,6 +117,19 @@ namespace RestaurantSystem.Application.Services.Implementations
             };
 
             await _userRepository.AddAsync(user);
+
+            await SafeLogActivityAsync(new CreateActivityLogDto
+            {
+                UserId = user.Id,
+                UserName = BuildUserName(user),
+                UserRole = user.Role.ToString(),
+                ActionType = ActivityActionType.UserCreated,
+                Module = "Auth",
+                EntityName = nameof(User),
+                EntityId = user.Id,
+                Description = $"New user '{BuildUserName(user)}' registered with role {user.Role}.",
+                NewValue = $"Email={user.Email}; Phone={user.PhoneNumber}; Role={user.Role}; IsActive={user.IsActive}"
+            });
 
             var token = GenerateJwtToken(user);
             var expiryInMinutes = double.Parse(_configuration["Jwt:ExpiryInMinutes"] ?? "1440");
@@ -164,6 +196,29 @@ namespace RestaurantSystem.Application.Services.Implementations
             var tokenHandler = new JwtSecurityTokenHandler();
             var token = tokenHandler.CreateToken(tokenDescriptor);
             return tokenHandler.WriteToken(token);
+        }
+
+        private async Task SafeLogActivityAsync(CreateActivityLogDto dto)
+        {
+            try
+            {
+                await _activityLogService.LogAsync(dto);
+            }
+            catch
+            {
+                // Activity logging should never break authentication.
+            }
+        }
+
+        private static string BuildUserName(User user)
+        {
+            var firstName = user.FirstName?.Trim() ?? string.Empty;
+            var lastName = user.LastName?.Trim() ?? string.Empty;
+            var fullName = $"{firstName} {lastName}".Trim();
+
+            return string.IsNullOrWhiteSpace(fullName)
+                ? user.Email ?? "User"
+                : fullName;
         }
     }
 }

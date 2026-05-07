@@ -1,4 +1,5 @@
 ﻿using RestaurantSystem.Application.Contracts.Repositories;
+using RestaurantSystem.Application.DTOs.ActivityLogs;
 using RestaurantSystem.Application.DTOs.Auth;
 using RestaurantSystem.Application.Services.Interfaces;
 using RestaurantSystem.Domain.Entities;
@@ -9,10 +10,14 @@ namespace RestaurantSystem.Application.Services.Implementations
     public class UserManagementService : IUserManagementService
     {
         private readonly IUserRepository _userRepository;
+        private readonly IActivityLogService _activityLogService;
 
-        public UserManagementService(IUserRepository userRepository)
+        public UserManagementService(
+            IUserRepository userRepository,
+            IActivityLogService activityLogService)
         {
             _userRepository = userRepository;
+            _activityLogService = activityLogService;
         }
 
         public async Task<UserListItemDto> CreateStaffAsync(CreateStaffRequestDto request)
@@ -45,6 +50,19 @@ namespace RestaurantSystem.Application.Services.Implementations
 
             await _userRepository.AddAsync(user);
 
+            await SafeLogActivityAsync(new CreateActivityLogDto
+            {
+                UserId = user.Id,
+                UserName = BuildUserName(user),
+                UserRole = user.Role.ToString(),
+                ActionType = ActivityActionType.UserCreated,
+                Module = "Users",
+                EntityName = nameof(User),
+                EntityId = user.Id,
+                Description = $"Created staff user '{BuildUserName(user)}' with role {user.Role}.",
+                NewValue = BuildUserValue(user)
+            });
+
             return MapToUserListItemDto(user);
         }
 
@@ -75,10 +93,26 @@ namespace RestaurantSystem.Application.Services.Implementations
             if (request.Role == UserRole.Customer)
                 throw new Exception("لا يمكن تعيين المستخدم كموظف بدور Customer");
 
+            var oldRole = user.Role;
+
             user.Role = request.Role;
             user.UpdatedAt = DateTime.UtcNow;
 
             await _userRepository.UpdateAsync(user);
+
+            await SafeLogActivityAsync(new CreateActivityLogDto
+            {
+                UserId = user.Id,
+                UserName = BuildUserName(user),
+                UserRole = user.Role.ToString(),
+                ActionType = ActivityActionType.UserRoleChanged,
+                Module = "Users",
+                EntityName = nameof(User),
+                EntityId = user.Id,
+                Description = $"Changed user '{BuildUserName(user)}' role from {oldRole} to {user.Role}.",
+                OldValue = oldRole.ToString(),
+                NewValue = user.Role.ToString()
+            });
 
             return MapToUserListItemDto(user);
         }
@@ -89,10 +123,29 @@ namespace RestaurantSystem.Application.Services.Implementations
             if (user == null || user.IsDeleted)
                 throw new Exception("المستخدم غير موجود");
 
+            var oldStatus = user.IsActive;
+
             user.IsActive = request.IsActive;
             user.UpdatedAt = DateTime.UtcNow;
 
             await _userRepository.UpdateAsync(user);
+
+            await SafeLogActivityAsync(new CreateActivityLogDto
+            {
+                UserId = user.Id,
+                UserName = BuildUserName(user),
+                UserRole = user.Role.ToString(),
+                ActionType = ActivityActionType.UserStatusChanged,
+                Module = "Users",
+                EntityName = nameof(User),
+                EntityId = user.Id,
+                Description = user.IsActive
+                    ? $"Activated user '{BuildUserName(user)}'."
+                    : $"Deactivated user '{BuildUserName(user)}'.",
+                OldValue = oldStatus ? "Active" : "Inactive",
+                NewValue = user.IsActive ? "Active" : "Inactive"
+            });
+
             return true;
         }
 
@@ -111,6 +164,39 @@ namespace RestaurantSystem.Application.Services.Implementations
                 CreatedAt = user.CreatedAt,
                 LastLoginAt = user.LastLoginAt
             };
+        }
+
+        private async Task SafeLogActivityAsync(CreateActivityLogDto dto)
+        {
+            try
+            {
+                await _activityLogService.LogAsync(dto);
+            }
+            catch
+            {
+                // Activity logging should never break user management operations.
+            }
+        }
+
+        private static string BuildUserName(User user)
+        {
+            var fullName = $"{user.FirstName} {user.LastName}".Trim();
+
+            return string.IsNullOrWhiteSpace(fullName)
+                ? user.Email
+                : fullName;
+        }
+
+        private static string BuildUserValue(User user)
+        {
+            return
+                $"FullName={BuildUserName(user)}; " +
+                $"Email={user.Email}; " +
+                $"Phone={user.PhoneNumber}; " +
+                $"Role={user.Role}; " +
+                $"IsActive={user.IsActive}; " +
+                $"Address={user.Address}; " +
+                $"City={user.City}";
         }
     }
 }

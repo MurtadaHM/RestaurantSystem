@@ -48,6 +48,9 @@
 
         UserCreated = 110,
         UserUpdated = 111,
-        UserDeleted = 112
+        UserDeleted = 112,
+        UserRoleChanged = 113,
+        UserStatusChanged = 114,
+        UserPasswordReset = 115
     }
 }
