@@ -22,6 +22,7 @@ namespace RestaurantSystem.Application
             services.AddScoped<IOrderService, OrderService>();
             services.AddScoped<ITableService, TableService>();
             services.AddScoped<IPaymentService, PaymentService>();
+            services.AddScoped<IActivityLogService, ActivityLogService>();
 
             // 4) Inventory
             services.AddScoped<IInventoryService, InventoryService>();
@@ -39,8 +40,6 @@ namespace RestaurantSystem.Application
 
             // 7) FluentValidation
             services.AddValidatorsFromAssembly(typeof(DependencyInjection).Assembly);
-
-
 
             return services;
         }

@@ -44,6 +44,7 @@ namespace RestaurantSystem.Infrastructure
             services.AddScoped<IReservationRepository, ReservationRepository>();
             services.AddScoped<IIngredientRepository, IngredientRepository>();
             services.AddScoped<ICustomerRepository, CustomerRepository>();
+            services.AddScoped<IActivityLogRepository, ActivityLogRepository>();
 
             services.Configure<PublicOrderSettings>(
                 configuration.GetSection("PublicOrderSettings"));

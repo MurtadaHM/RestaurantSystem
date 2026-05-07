@@ -14,6 +14,7 @@ namespace RestaurantSystem.Infrastructure.Data
 
         public DbSet<User> Users { get; set; }
         public DbSet<Customer> Customers { get; set; }
+        public DbSet<ActivityLog> ActivityLogs { get; set; }
         public DbSet<Category> Categories { get; set; }
         public DbSet<MenuItem> MenuItems { get; set; }
         public DbSet<Table> Tables { get; set; }

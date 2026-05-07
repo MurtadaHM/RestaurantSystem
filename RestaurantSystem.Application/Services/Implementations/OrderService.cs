@@ -12,6 +12,7 @@ using RestaurantSystem.Application.Services.Interfaces;
 using RestaurantSystem.Domain.Entities;
 using RestaurantSystem.Domain.Enums;
 using RestaurantSystem.Domain.Exceptions;
+using RestaurantSystem.Application.DTOs.ActivityLogs;
 
 namespace RestaurantSystem.Application.Services.Implementations
 {
@@ -26,6 +27,8 @@ namespace RestaurantSystem.Application.Services.Implementations
         private readonly IOrderNotificationService _notificationService;
         private readonly IInventoryService _inventoryService;
         private readonly ISendyIntegrationService _deliveryIntegrationService;
+
+        private readonly IActivityLogService _activityLogService;
         private readonly ILogger<OrderService> _logger;
         private readonly PublicOrderSettings _publicOrderSettings;
 
@@ -39,6 +42,7 @@ namespace RestaurantSystem.Application.Services.Implementations
             IOrderNotificationService notificationService,
             IInventoryService inventoryService,
             ISendyIntegrationService deliveryIntegrationService,
+            IActivityLogService activityLogService,
             IOptions<PublicOrderSettings> publicOrderSettings,
             ILogger<OrderService> logger)
         {
@@ -51,6 +55,7 @@ namespace RestaurantSystem.Application.Services.Implementations
             _notificationService = notificationService;
             _inventoryService = inventoryService;
             _deliveryIntegrationService = deliveryIntegrationService;
+            _activityLogService = activityLogService;
             _publicOrderSettings = publicOrderSettings.Value;
             _logger = logger;
         }
@@ -165,6 +170,21 @@ namespace RestaurantSystem.Application.Services.Implementations
                     order.OrderNumber);
             }
 
+            if (!IsPublicFallbackOrder(request))
+            {
+                await SafeLogActivityAsync(new CreateActivityLogDto
+                {
+                    UserId = order.UserId,
+                    UserName = response.UserName,
+                    UserRole = null,
+                    ActionType = ActivityActionType.OrderCreated,
+                    Module = "Orders",
+                    EntityName = nameof(Order),
+                    EntityId = order.Id,
+                    Description = $"Created order #{order.OrderNumber} ({order.OrderType}) with total {order.TotalAmount}."
+                });
+            }
+
             return response;
         }
 
@@ -237,7 +257,23 @@ namespace RestaurantSystem.Application.Services.Implementations
                 }).ToList()
             };
 
-            return await CreateOrderAsync(createRequest);
+            var result = await CreateOrderAsync(createRequest);
+
+            await SafeLogActivityAsync(new CreateActivityLogDto
+            {
+                UserId = null,
+                UserName = string.IsNullOrWhiteSpace(customer.FullName)
+                    ? "Public Customer"
+                    : customer.FullName,
+                UserRole = "Public",
+                ActionType = ActivityActionType.PublicOrderCreated,
+                Module = "PublicOrders",
+                EntityName = nameof(Order),
+                EntityId = result.Id,
+                Description = $"Public customer {phone} created order #{result.OrderNumber} for table {table.TableNumber} ({table.Code})."
+            });
+
+            return result;
         }
 
         public async Task<OrderResponseDto> UpdateOrderStatusAsync(Guid id, UpdateOrderStatusRequestDto request)
@@ -271,6 +307,7 @@ namespace RestaurantSystem.Application.Services.Implementations
             {
                 throw new Exception("لا يمكن إكمال طلب توصيل مرتبط بـ Sendy قبل أن تكون حالة التوصيل Delivered");
             }
+            var oldStatus = order.Status;
 
             order.Status = request.NewStatus;
 
@@ -293,6 +330,20 @@ namespace RestaurantSystem.Application.Services.Implementations
                 id,
                 order.OrderNumber,
                 request.NewStatus.ToString());
+
+            await SafeLogActivityAsync(new CreateActivityLogDto
+            {
+                UserId = order.UserId,
+                UserName = BuildCustomerName(order),
+                UserRole = null,
+                ActionType = ActivityActionType.OrderStatusChanged,
+                Module = "Orders",
+                EntityName = nameof(Order),
+                EntityId = order.Id,
+                Description = $"Changed order #{order.OrderNumber} status from {oldStatus} to {request.NewStatus}.",
+                OldValue = oldStatus.ToString(),
+                NewValue = request.NewStatus.ToString()
+            });
 
             return await GetOrderByIdAsync(order.Id);
         }
@@ -323,6 +374,8 @@ namespace RestaurantSystem.Application.Services.Implementations
 
             if (progress == null)
                 throw new Exception("القسم غير موجود داخل هذا الطلب");
+
+            var oldDepartmentStatus = progress.Status;
 
             progress.Status = request.NewStatus;
             progress.Notes = request.Notes;
@@ -362,6 +415,20 @@ namespace RestaurantSystem.Application.Services.Implementations
                 order.Id,
                 order.OrderNumber,
                 order.Status.ToString());
+
+            await SafeLogActivityAsync(new CreateActivityLogDto
+            {
+                UserId = order.UserId,
+                UserName = BuildCustomerName(order),
+                UserRole = null,
+                ActionType = ActivityActionType.DepartmentStatusChanged,
+                Module = "DepartmentQueue",
+                EntityName = nameof(OrderDepartmentProgress),
+                EntityId = progress.Id,
+                Description = $"Changed department status for order #{order.OrderNumber} from {oldDepartmentStatus} to {request.NewStatus}.",
+                OldValue = oldDepartmentStatus.ToString(),
+                NewValue = request.NewStatus.ToString()
+            });
 
             return _mapper.Map<OrderDepartmentProgressDto>(progress);
         }
@@ -664,6 +731,18 @@ namespace RestaurantSystem.Application.Services.Implementations
             await _orderRepository.UpdateAsync(order);
             await FreeTableIfNoActiveDineInOrdersAsync(order);
 
+            await SafeLogActivityAsync(new CreateActivityLogDto
+            {
+                UserId = order.UserId,
+                UserName = BuildCustomerName(order),
+                UserRole = null,
+                ActionType = ActivityActionType.OrderCancelled,
+                Module = "Orders",
+                EntityName = nameof(Order),
+                EntityId = order.Id,
+                Description = $"Cancelled order #{order.OrderNumber}."
+            });
+
             return true;
         }
 
@@ -857,6 +936,33 @@ namespace RestaurantSystem.Application.Services.Implementations
                 "wallet" => "online",
                 _ => "cash"
             };
+        }
+
+
+
+        private bool IsPublicFallbackOrder(CreateOrderRequestDto request)
+        {
+            return request.CustomerId.HasValue &&
+                   _publicOrderSettings.FallbackUserId != Guid.Empty &&
+                   request.UserId == _publicOrderSettings.FallbackUserId;
+        }
+
+        private async Task SafeLogActivityAsync(CreateActivityLogDto dto)
+        {
+            try
+            {
+                await _activityLogService.LogAsync(dto);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(
+                    ex,
+                    "⚠️ Failed to write activity log. Module: {Module}, Action: {ActionType}, Entity: {EntityName}, EntityId: {EntityId}",
+                    dto.Module,
+                    dto.ActionType,
+                    dto.EntityName,
+                    dto.EntityId);
+            }
         }
     }
 }
