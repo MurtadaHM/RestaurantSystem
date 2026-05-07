@@ -810,6 +810,8 @@ namespace RestaurantSystem.Application.Services.Implementations
 
             if (table.Status != TableStatus.Occupied)
             {
+                var oldStatus = table.Status;
+
                 table.Status = TableStatus.Occupied;
                 await _tableRepository.UpdateAsync(table);
 
@@ -817,6 +819,20 @@ namespace RestaurantSystem.Application.Services.Implementations
                     table.Id,
                     table.TableNumber,
                     table.Status.ToString());
+
+                await SafeLogActivityAsync(new CreateActivityLogDto
+                {
+                    UserId = order.UserId,
+                    UserName = BuildCustomerName(order),
+                    UserRole = null,
+                    ActionType = ActivityActionType.TableStatusChanged,
+                    Module = "Tables",
+                    EntityName = nameof(Table),
+                    EntityId = table.Id,
+                    Description = $"Changed table {table.TableNumber} status from {oldStatus} to {table.Status} because order #{order.OrderNumber} was created.",
+                    OldValue = oldStatus.ToString(),
+                    NewValue = table.Status.ToString()
+                });
 
                 _logger.LogInformation(
                     "🍽️ تم تغيير حالة الطاولة {TableNumber} إلى Occupied بسبب الطلب #{OrderNumber}",
@@ -846,6 +862,8 @@ namespace RestaurantSystem.Application.Services.Implementations
 
             if (table.Status == TableStatus.Occupied)
             {
+                var oldStatus = table.Status;
+
                 table.Status = TableStatus.Available;
                 await _tableRepository.UpdateAsync(table);
 
@@ -853,6 +871,20 @@ namespace RestaurantSystem.Application.Services.Implementations
                     table.Id,
                     table.TableNumber,
                     table.Status.ToString());
+
+                await SafeLogActivityAsync(new CreateActivityLogDto
+                {
+                    UserId = order.UserId,
+                    UserName = BuildCustomerName(order),
+                    UserRole = null,
+                    ActionType = ActivityActionType.TableStatusChanged,
+                    Module = "Tables",
+                    EntityName = nameof(Table),
+                    EntityId = table.Id,
+                    Description = $"Changed table {table.TableNumber} status from {oldStatus} to {table.Status} because order #{order.OrderNumber} reached terminal status {order.Status}.",
+                    OldValue = oldStatus.ToString(),
+                    NewValue = table.Status.ToString()
+                });
 
                 _logger.LogInformation(
                     "🟢 تم تحرير الطاولة {TableNumber} بعد إنهاء/إلغاء الطلب #{OrderNumber}",

@@ -1,5 +1,7 @@
 ﻿using AutoMapper;
+using Microsoft.Extensions.Logging;
 using RestaurantSystem.Application.Contracts.Repositories;
+using RestaurantSystem.Application.DTOs.ActivityLogs;
 using RestaurantSystem.Application.DTOs.Tables;
 using RestaurantSystem.Application.Services.Interfaces;
 using RestaurantSystem.Domain.Entities;
@@ -11,12 +13,20 @@ namespace RestaurantSystem.Application.Services.Implementations
     public class TableService : ITableService
     {
         private readonly ITableRepository _tableRepository;
+        private readonly IActivityLogService _activityLogService;
         private readonly IMapper _mapper;
+        private readonly ILogger<TableService> _logger;
 
-        public TableService(ITableRepository tableRepository, IMapper mapper)
+        public TableService(
+            ITableRepository tableRepository,
+            IActivityLogService activityLogService,
+            IMapper mapper,
+            ILogger<TableService> logger)
         {
             _tableRepository = tableRepository;
+            _activityLogService = activityLogService;
             _mapper = mapper;
+            _logger = logger;
         }
 
         // 1. جلب كافة الطاولات
@@ -64,6 +74,19 @@ namespace RestaurantSystem.Application.Services.Implementations
 
             await _tableRepository.AddAsync(table);
 
+            await SafeLogActivityAsync(new CreateActivityLogDto
+            {
+                UserId = null,
+                UserName = "System",
+                UserRole = "System",
+                ActionType = ActivityActionType.TableCreated,
+                Module = "Tables",
+                EntityName = nameof(Table),
+                EntityId = table.Id,
+                Description = $"Created table '{table.TableNumber}' with code '{table.Code}' in location '{table.Location}'.",
+                NewValue = BuildTableValue(table)
+            });
+
             return _mapper.Map<TableResponseDto>(table);
         }
 
@@ -75,6 +98,8 @@ namespace RestaurantSystem.Application.Services.Implementations
             var table = await _tableRepository.GetByIdAsync(id);
             if (table == null)
                 throw new NotFoundException("الطاولة", id);
+
+            var oldValue = BuildTableValue(table);
 
             if (!string.Equals(table.TableNumber, request.TableNumber, StringComparison.OrdinalIgnoreCase))
             {
@@ -95,17 +120,46 @@ namespace RestaurantSystem.Application.Services.Implementations
 
             await _tableRepository.UpdateAsync(table);
 
+            await SafeLogActivityAsync(new CreateActivityLogDto
+            {
+                UserId = null,
+                UserName = "System",
+                UserRole = "System",
+                ActionType = ActivityActionType.TableUpdated,
+                Module = "Tables",
+                EntityName = nameof(Table),
+                EntityId = table.Id,
+                Description = $"Updated table '{table.TableNumber}' with code '{table.Code}'.",
+                OldValue = oldValue,
+                NewValue = BuildTableValue(table)
+            });
+
             return _mapper.Map<TableResponseDto>(table);
         }
 
-        // 6. حذف طاولة (Soft Delete)
+        // 6. حذف طاولة Soft Delete
         public async Task DeleteTableAsync(Guid id)
         {
             var table = await _tableRepository.GetByIdAsync(id);
             if (table == null)
                 throw new NotFoundException("الطاولة", id);
 
+            var oldValue = BuildTableValue(table);
+
             await _tableRepository.DeleteAsync(id);
+
+            await SafeLogActivityAsync(new CreateActivityLogDto
+            {
+                UserId = null,
+                UserName = "System",
+                UserRole = "System",
+                ActionType = ActivityActionType.TableDeleted,
+                Module = "Tables",
+                EntityName = nameof(Table),
+                EntityId = table.Id,
+                Description = $"Deleted table '{table.TableNumber}' with code '{table.Code}'.",
+                OldValue = oldValue
+            });
         }
 
         private static void NormalizeCreateRequest(CreateTableRequestDto request)
@@ -122,6 +176,38 @@ namespace RestaurantSystem.Application.Services.Implementations
             request.Code = request.Code.Trim();
             request.Location = request.Location.Trim();
             request.Zone = string.IsNullOrWhiteSpace(request.Zone) ? null : request.Zone.Trim();
+        }
+
+        private async Task SafeLogActivityAsync(CreateActivityLogDto dto)
+        {
+            try
+            {
+                await _activityLogService.LogAsync(dto);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(
+                    ex,
+                    "⚠️ Failed to write activity log. Module: {Module}, Action: {ActionType}, Entity: {EntityName}, EntityId: {EntityId}",
+                    dto.Module,
+                    dto.ActionType,
+                    dto.EntityName,
+                    dto.EntityId);
+            }
+        }
+
+        private static string BuildTableValue(Table table)
+        {
+            return
+                $"TableNumber={table.TableNumber}; " +
+                $"Code={table.Code}; " +
+                $"Capacity={table.Capacity}; " +
+                $"Location={table.Location}; " +
+                $"Zone={table.Zone}; " +
+                $"FloorNumber={table.FloorNumber}; " +
+                $"Status={table.Status}; " +
+                $"IsActive={table.IsActive}; " +
+                $"IsOrderingEnabled={table.IsOrderingEnabled}";
         }
     }
 }
