@@ -4,6 +4,7 @@
         <TargetFramework>net8.0</TargetFramework>
         <Nullable>enable</Nullable>
         <ImplicitUsings>enable</ImplicitUsings>
+        <UserSecretsId>8e9ed23e-74b6-4c5d-a02d-ebc0195ab7ea</UserSecretsId>
     </PropertyGroup>
 
     <ItemGroup>
@@ -19,7 +20,6 @@
         <PackageReference Include="Swashbuckle.AspNetCore" Version="6.6.2" />
         <PackageReference Include="System.IdentityModel.Tokens.Jwt" Version="8.16.0" />
         <PackageReference Include="System.Text.Json" Version="10.0.2" />
-       
     </ItemGroup>
 
     <ItemGroup>

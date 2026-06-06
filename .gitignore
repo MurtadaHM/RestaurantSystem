@@ -1,30 +1,45 @@
-## [كود لإهمال ملفات الـ Build والملفات المؤقتة]
+# Build outputs
 [Bb]in/
 [Oo]bj/
+[Dd]ebug/
+[Rr]elease/
+publish/
+
+# Visual Studio / IDE
 .vs/
-.vscode/
+.vscode/*
+!.vscode/extensions.json
+.idea/
 *.user
 *.userosscache
 *.sln.docstates
+*.suo
+*.swp
+*.swo
+*~
 
-## [كود لإهمال ملفات الإعدادات المحلية والحساسة]
-# ملفات البيئة - لا تضيفها إلى Git
+# Logs
+logs/
+*.log
+
+# Test results and coverage
+TestResults/
+coverage/
+coverage.*
+*.trx
+
+# Local environment files
 .env
 .env.local
 .env.*.local
 .env.prod
 .env.prod.local
 
-# ملفات appsettings الخاصة بالتطوير - لا تضيف الملفات الحقيقية
-appsettings.json
-appsettings.Development.json
-appsettings.*.json
-!appsettings.template.json
-RestaurantSystem.Api/appsettings.Development.json
+# Local-only ASP.NET configuration
+appsettings.Local.json
+appsettings.*.Local.json
 
-# الملفات المؤقتة والـ Logs
-*.log
-logs/
-*.swp
-*.swo
-*~
+# OS files
+.DS_Store
+Thumbs.db
+Desktop.ini
