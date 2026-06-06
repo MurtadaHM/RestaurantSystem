@@ -31,8 +31,6 @@ RUN dotnet publish "RestaurantSystem.Api.csproj" \
 
 FROM mcr.microsoft.com/dotnet/aspnet:8.0-alpine AS final
 
-RUN apk add --no-cache curl
-
 WORKDIR /app
 
 COPY --from=build /app/publish .
