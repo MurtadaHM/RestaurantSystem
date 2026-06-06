@@ -36,8 +36,9 @@ WORKDIR /app
 COPY --from=build /app/publish .
 
 ENV ASPNETCORE_ENVIRONMENT=Production
+ENV ASPNETCORE_HTTP_PORTS=8080
 ENV DOTNET_RUNNING_IN_CONTAINER=true
 
 EXPOSE 8080
 
-ENTRYPOINT ["sh", "-c", "dotnet RestaurantSystem.Api.dll --urls http://0.0.0.0:${PORT:-8080}"]
+ENTRYPOINT ["dotnet", "RestaurantSystem.Api.dll"]

@@ -20,45 +20,55 @@ AppContext.SetSwitch("Npgsql.EnableLegacyTimestampBehavior", true);
 var builder = WebApplication.CreateBuilder(args);
 
 // ============================================================
-// 0) Load Connection String from Environment Variables (for Render)
+// 0) Load Connection String from Environment Variables
 // ============================================================
-var connectionString = Environment.GetEnvironmentVariable("ConnectionStrings__DefaultConnection")
+var connectionString =
+    Environment.GetEnvironmentVariable("ConnectionStrings__DefaultConnection")
     ?? builder.Configuration.GetConnectionString("DefaultConnection");
 
 if (string.IsNullOrWhiteSpace(connectionString))
 {
     throw new InvalidOperationException(
-        "Connection string 'DefaultConnection' not found in appsettings or environment variables.");
+        "Connection string 'DefaultConnection' not found in configuration or environment variables.");
 }
 
-// Override the configuration with environment variable if present
+// Override configuration when the environment variable is available
 builder.Configuration["ConnectionStrings:DefaultConnection"] = connectionString;
 
 // ============================================================
-// 1) Controllers + JSON + SignalR
+// 1) Controllers + JSON + SignalR + Health Checks
 // ============================================================
-builder.Services.AddControllers(options =>
-{
-    options.Filters.Add<ValidationFilter>();
-})
-.AddJsonOptions(options =>
-{
-    options.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter());
-    options.JsonSerializerOptions.ReferenceHandler = ReferenceHandler.IgnoreCycles;
-    options.JsonSerializerOptions.PropertyNamingPolicy = JsonNamingPolicy.CamelCase;
-    options.JsonSerializerOptions.WriteIndented = true;
-})
-.ConfigureApiBehaviorOptions(options =>
-{
-    options.SuppressModelStateInvalidFilter = true;
-});
+builder.Services
+    .AddControllers(options =>
+    {
+        options.Filters.Add<ValidationFilter>();
+    })
+    .AddJsonOptions(options =>
+    {
+        options.JsonSerializerOptions.Converters.Add(
+            new JsonStringEnumConverter());
+
+        options.JsonSerializerOptions.ReferenceHandler =
+            ReferenceHandler.IgnoreCycles;
+
+        options.JsonSerializerOptions.PropertyNamingPolicy =
+            JsonNamingPolicy.CamelCase;
+
+        options.JsonSerializerOptions.WriteIndented = true;
+    })
+    .ConfigureApiBehaviorOptions(options =>
+    {
+        options.SuppressModelStateInvalidFilter = true;
+    });
 
 builder.Services.AddSignalR();
+builder.Services.AddHealthChecks();
 
 // ============================================================
 // 2) Swagger + Application + Infrastructure
 // ============================================================
 builder.Services.AddEndpointsApiExplorer();
+
 builder.Services.AddSwaggerGen(options =>
 {
     options.SwaggerDoc("v1", new OpenApiInfo
@@ -68,7 +78,8 @@ builder.Services.AddSwaggerGen(options =>
     });
 
     // حل مشكلة تضارب أسماء DTOs المتشابهة
-    options.CustomSchemaIds(type => type.FullName?.Replace("+", ".") ?? type.Name);
+    options.CustomSchemaIds(
+        type => type.FullName?.Replace("+", ".") ?? type.Name);
 
     var jwtSecurityScheme = new OpenApiSecurityScheme
     {
@@ -86,11 +97,18 @@ builder.Services.AddSwaggerGen(options =>
         }
     };
 
-    options.AddSecurityDefinition(jwtSecurityScheme.Reference.Id, jwtSecurityScheme);
-    options.AddSecurityRequirement(new OpenApiSecurityRequirement
-    {
-        { jwtSecurityScheme, Array.Empty<string>() }
-    });
+    options.AddSecurityDefinition(
+        jwtSecurityScheme.Reference.Id,
+        jwtSecurityScheme);
+
+    options.AddSecurityRequirement(
+        new OpenApiSecurityRequirement
+        {
+            {
+                jwtSecurityScheme,
+                Array.Empty<string>()
+            }
+        });
 });
 
 builder.Services.AddApplication();
@@ -100,51 +118,68 @@ builder.Services.AddScoped<IOrderNotificationService, OrderNotificationService>(
 // ============================================================
 // 3) JWT Authentication
 // ============================================================
-var jwtKey = builder.Configuration["Jwt:Key"]
-             ?? throw new InvalidOperationException("super_secret_key_which_must_be_long_enough_for_hmac_sha256.");
+var jwtKey = builder.Configuration["Jwt:Key"];
+
+if (string.IsNullOrWhiteSpace(jwtKey))
+{
+    throw new InvalidOperationException(
+        "JWT configuration value 'Jwt:Key' was not found.");
+}
 
 var jwtIssuer = builder.Configuration["Jwt:Issuer"];
 var jwtAudience = builder.Configuration["Jwt:Audience"];
 
-builder.Services.AddAuthentication(options =>
-{
-    options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
-    options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
-})
-.AddJwtBearer(options =>
-{
-    options.RequireHttpsMetadata = false;
-    options.SaveToken = true;
-
-    options.TokenValidationParameters = new TokenValidationParameters
+builder.Services
+    .AddAuthentication(options =>
     {
-        ValidateIssuerSigningKey = true,
-        IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtKey)),
-        ValidateIssuer = true,
-        ValidIssuer = jwtIssuer,
-        ValidateAudience = true,
-        ValidAudience = jwtAudience,
-        ValidateLifetime = true,
-        ClockSkew = TimeSpan.Zero
-    };
+        options.DefaultAuthenticateScheme =
+            JwtBearerDefaults.AuthenticationScheme;
 
-    options.Events = new JwtBearerEvents
+        options.DefaultChallengeScheme =
+            JwtBearerDefaults.AuthenticationScheme;
+    })
+    .AddJwtBearer(options =>
     {
-        OnMessageReceived = context =>
-        {
-            var accessToken = context.Request.Query["access_token"];
-            var path = context.HttpContext.Request.Path;
+        options.RequireHttpsMetadata = false;
+        options.SaveToken = true;
 
-            if (!string.IsNullOrWhiteSpace(accessToken) &&
-                path.StartsWithSegments("/orderHub"))
+        options.TokenValidationParameters =
+            new TokenValidationParameters
             {
-                context.Token = accessToken;
-            }
+                ValidateIssuerSigningKey = true,
 
-            return Task.CompletedTask;
-        }
-    };
-});
+                IssuerSigningKey = new SymmetricSecurityKey(
+                    Encoding.UTF8.GetBytes(jwtKey)),
+
+                ValidateIssuer = true,
+                ValidIssuer = jwtIssuer,
+
+                ValidateAudience = true,
+                ValidAudience = jwtAudience,
+
+                ValidateLifetime = true,
+                ClockSkew = TimeSpan.Zero
+            };
+
+        options.Events = new JwtBearerEvents
+        {
+            OnMessageReceived = context =>
+            {
+                var accessToken =
+                    context.Request.Query["access_token"];
+
+                var path = context.HttpContext.Request.Path;
+
+                if (!string.IsNullOrWhiteSpace(accessToken) &&
+                    path.StartsWithSegments("/orderHub"))
+                {
+                    context.Token = accessToken;
+                }
+
+                return Task.CompletedTask;
+            }
+        };
+    });
 
 builder.Services.AddAuthorization();
 
@@ -155,12 +190,16 @@ builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowFrontend", policy =>
     {
-        policy.AllowAnyOrigin()
-              .AllowAnyHeader()
-              .AllowAnyMethod();
+        policy
+            .AllowAnyOrigin()
+            .AllowAnyHeader()
+            .AllowAnyMethod();
     });
 });
 
+// ============================================================
+// Build Application
+// ============================================================
 var app = builder.Build();
 
 // ============================================================
@@ -170,9 +209,13 @@ app.UseMiddleware<ExceptionHandlingMiddleware>();
 app.UseMiddleware<LoggingMiddleware>();
 
 app.UseSwagger();
+
 app.UseSwaggerUI(options =>
 {
-    options.SwaggerEndpoint("/swagger/v1/swagger.json", "RestaurantSystem API v1");
+    options.SwaggerEndpoint(
+        "/swagger/v1/swagger.json",
+        "RestaurantSystem API v1");
+
     options.RoutePrefix = "swagger";
 });
 
@@ -180,11 +223,17 @@ app.UseDefaultFiles();
 app.UseStaticFiles();
 
 app.UseRouting();
+
 app.UseCors("AllowFrontend");
+
 app.UseAuthentication();
 app.UseAuthorization();
 
+// ============================================================
+// Endpoints
+// ============================================================
 app.MapControllers();
+app.MapHealthChecks("/health");
 app.MapHub<OrderHub>("/orderHub");
 
 // ============================================================
@@ -196,18 +245,27 @@ using (var scope = app.Services.CreateScope())
 
     try
     {
-        var context = services.GetRequiredService<ApplicationDbContext>();
+        var context =
+            services.GetRequiredService<ApplicationDbContext>();
 
         await context.Database.MigrateAsync();
         await DbInitializer.SeedAsync(context);
 
-        var logger = services.GetRequiredService<ILogger<Program>>();
-        logger.LogInformation("✅ System is ready. Database initialized and seeded.");
+        var logger =
+            services.GetRequiredService<ILogger<Program>>();
+
+        logger.LogInformation(
+            "✅ System is ready. Database initialized and seeded.");
     }
     catch (Exception ex)
     {
-        var logger = services.GetRequiredService<ILogger<Program>>();
-        logger.LogError(ex, "❌ Database initialization failed.");
+        var logger =
+            services.GetRequiredService<ILogger<Program>>();
+
+        logger.LogError(
+            ex,
+            "❌ Database initialization failed.");
     }
 }
+
 app.Run();
