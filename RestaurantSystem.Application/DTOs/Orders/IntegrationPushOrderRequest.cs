@@ -12,6 +12,12 @@
         public int OrderNumber { get; set; }
 
         /// <summary>
+        /// Local order id inside RestaurantSystem.
+        /// Useful for logs and stable external references.
+        /// </summary>
+        public Guid? OrderId { get; set; }
+
+        /// <summary>
         /// الاسم الكامل للزبون.
         /// </summary>
         public string CustomerName { get; set; } = default!;
@@ -55,9 +61,9 @@
 
         /// <summary>
         /// نوع التنفيذ:
-        /// from_to أو warehouse
+        /// fromTo أو warehouse
         /// </summary>
-        public string FulfillmentType { get; set; } = "from_to";
+        public string FulfillmentType { get; set; } = "fromTo";
 
         /// <summary>
         /// نمط التوصيل كما يتطلبه Swagger الخاص بـ Sendy.

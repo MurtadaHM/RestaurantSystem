@@ -518,6 +518,7 @@ namespace RestaurantSystem.Application.Services.Implementations
             var pushRequest = new IntegrationPushOrderRequest
             {
                 OrderNumber = order.OrderNumber,
+                OrderId = order.Id,
                 CustomerName = customerName,
                 CustomerPhone = customerPhone,
                 CustomerAddress = customerAddress,
@@ -526,7 +527,7 @@ namespace RestaurantSystem.Application.Services.Implementations
                 OrderValue = orderValue,
                 DeliveryFee = deliveryFee,
                 ExternalRef = $"ORD-{order.OrderNumber}",
-                FulfillmentType = "from_to",
+                FulfillmentType = "fromTo",
                 DeliveryMode = "direct",
                 PaymentMethod = paymentMethod
             };
@@ -620,6 +621,7 @@ namespace RestaurantSystem.Application.Services.Implementations
             var pushRequest = new IntegrationPushOrderRequest
             {
                 OrderNumber = order.OrderNumber,
+                OrderId = order.Id,
                 CustomerName = BuildCustomerName(order),
                 CustomerPhone = order.CustomerPhoneNumber,
                 CustomerAddress = order.DeliveryAddress,
@@ -628,7 +630,7 @@ namespace RestaurantSystem.Application.Services.Implementations
                 OrderValue = orderValue,
                 DeliveryFee = order.DeliveryFee ?? 0,
                 ExternalRef = $"ORD-{order.OrderNumber}",
-                FulfillmentType = "from_to",
+                FulfillmentType = "fromTo",
                 DeliveryMode = "direct",
                 PaymentMethod = paymentMethod
             };
@@ -643,7 +645,9 @@ namespace RestaurantSystem.Application.Services.Implementations
                     order.OrderNumber,
                     message);
 
-                throw new Exception($"فشل إرسال الطلب إلى Sendy: {message}");
+                throw new Exception(IsSendyAddressValidationMessage(message)
+                    ? message
+                    : $"فشل إرسال الطلب إلى Sendy: {message}");
             }
 
             if (!externalId.HasValue)
@@ -968,6 +972,13 @@ namespace RestaurantSystem.Application.Services.Implementations
                 "wallet" => "online",
                 _ => "cash"
             };
+        }
+
+        private static bool IsSendyAddressValidationMessage(string? message)
+        {
+            return message is
+                "Sendy address province code is required. Configure default Sendy province code or select province on the order." or
+                "Sendy address area is required. Configure default Sendy area id or select area on the order.";
         }
 
 

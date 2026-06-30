@@ -56,6 +56,20 @@ namespace RestaurantSystem.Infrastructure
 
             services.Configure<SendyClientSettings>(
                 configuration.GetSection("SendyConfig"));
+            services.PostConfigure<SendyClientSettings>(settings =>
+            {
+                var defaultProvinceCode = configuration["SENDY_DEFAULT_ADDRESS_PROVINCE_CODE"];
+                if (!string.IsNullOrWhiteSpace(defaultProvinceCode))
+                {
+                    settings.DefaultAddressProvinceCode = defaultProvinceCode.Trim();
+                }
+
+                var defaultAreaId = configuration["SENDY_DEFAULT_ADDRESS_AREA_ID"];
+                if (Guid.TryParse(defaultAreaId, out var parsedAreaId))
+                {
+                    settings.DefaultAddressAreaId = parsedAreaId;
+                }
+            });
 
             services.Configure<Team6IntegrationSettings>(
                 configuration.GetSection("Team6Integration"));

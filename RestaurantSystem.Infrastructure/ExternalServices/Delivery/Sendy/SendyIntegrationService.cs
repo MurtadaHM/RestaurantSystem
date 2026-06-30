@@ -52,22 +52,30 @@ namespace RestaurantSystem.Infrastructure.ExternalServices.Delivery.Sendy
             {
                 var endpoint = $"{_settings.AdminRoute}/orders";
 
-                // Use provided values or fall back to configured defaults
-                var addressProvinceCode = request.AddressProvinceCode ?? _settings.DefaultAddressProvinceCode;
+                var addressProvinceCode = string.IsNullOrWhiteSpace(request.AddressProvinceCode)
+                    ? _settings.DefaultAddressProvinceCode
+                    : request.AddressProvinceCode;
                 var addressAreaId = request.AddressAreaId ?? _settings.DefaultAddressAreaId;
 
-                // Validate required address reference fields before calling Sendy
                 if (string.IsNullOrWhiteSpace(addressProvinceCode))
                 {
-                    var msg = "AddressProvinceCode is required (request or Sendy default).";
-                    _logger.LogWarning("Sendy push validation failed: {Msg} OrderNumber: {OrderNo}", msg, request.OrderNumber);
+                    var msg = "Sendy address province code is required. Configure default Sendy province code or select province on the order.";
+                    _logger.LogWarning(
+                        "Sendy push validation failed for local order {OrderId} #{OrderNumber}: {Message}",
+                        request.OrderId,
+                        request.OrderNumber,
+                        msg);
                     return (false, null, null, null, msg);
                 }
 
                 if (!addressAreaId.HasValue || addressAreaId == Guid.Empty)
                 {
-                    var msg = "AddressAreaId must not be null or empty GUID (request or Sendy default).";
-                    _logger.LogWarning("Sendy push validation failed: {Msg} OrderNumber: {OrderNo}", msg, request.OrderNumber);
+                    var msg = "Sendy address area is required. Configure default Sendy area id or select area on the order.";
+                    _logger.LogWarning(
+                        "Sendy push validation failed for local order {OrderId} #{OrderNumber}: {Message}",
+                        request.OrderId,
+                        request.OrderNumber,
+                        msg);
                     return (false, null, null, null, msg);
                 }
 
@@ -82,14 +90,16 @@ namespace RestaurantSystem.Infrastructure.ExternalServices.Delivery.Sendy
                     deliveryFee = request.DeliveryFee,
                     externalRef = request.ExternalRef,
                     fulfillmentType = request.FulfillmentType,
-                    deliveryMode = request.DeliveryMode,
                     paymentMethod = request.PaymentMethod,
-                    // new address reference fields required by Sendy
-                    addressProvinceCode = addressProvinceCode,
+                    addressProvinceCode,
                     addressAreaId = addressAreaId.Value
                 };
 
-                _logger.LogInformation("Sending order {OrderNo} to Sendy using X-API-Key", request.OrderNumber);
+                _logger.LogInformation(
+                    "Sending local order {OrderId} #{OrderNumber} to Sendy. ExternalRef: {ExternalRef}",
+                    request.OrderId,
+                    request.OrderNumber,
+                    request.ExternalRef);
 
                 using var response = await _httpClient.PostAsJsonAsync(endpoint, payload);
                 var responseBody = await response.Content.ReadAsStringAsync();

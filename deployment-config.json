@@ -90,6 +90,8 @@
       "SENDY_BASE_URL": "Sendy base URL",
       "SENDY_API_KEY": "Sendy API key",
       "SENDY_WEBHOOK_SECRET": "Sendy webhook secret",
+      "SENDY_DEFAULT_ADDRESS_PROVINCE_CODE": "Default Sendy address province code",
+      "SENDY_DEFAULT_ADDRESS_AREA_ID": "Default Sendy address area id",
       "TEAM6_BASE_URL": "Team6 integration URL",
       "TEAM6_RESTAURANT_ID": "Restaurant ID",
       "TEAM6_FALLBACK_USER_ID": "Fallback user ID"

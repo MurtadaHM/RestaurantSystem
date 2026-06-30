@@ -47,6 +47,8 @@ services:
       SENDY_BASE_URL: ${SENDY_BASE_URL:-https://sendy-backend-production.up.railway.app/}
       SENDY_API_KEY: ${SENDY_API_KEY:-your_sendy_api_key_here}
       SENDY_WEBHOOK_SECRET: ${SENDY_WEBHOOK_SECRET:-your_webhook_secret_here}
+      SENDY_DEFAULT_ADDRESS_PROVINCE_CODE: ${SENDY_DEFAULT_ADDRESS_PROVINCE_CODE:-}
+      SENDY_DEFAULT_ADDRESS_AREA_ID: ${SENDY_DEFAULT_ADDRESS_AREA_ID:-}
       TEAM6_ENABLED: ${TEAM6_ENABLED:-true}
       TEAM6_BASE_URL: ${TEAM6_BASE_URL:-https://rest-back-qoxj.onrender.com}
       TEAM6_RESTAURANT_ID: ${TEAM6_RESTAURANT_ID:-21111111-1111-1111-1111-111111111112}

@@ -62,6 +62,12 @@ services:
       - key: SENDY_WEBHOOK_SECRET
         value: ${SENDY_WEBHOOK_SECRET}
         scope: runtime
+      - key: SENDY_DEFAULT_ADDRESS_PROVINCE_CODE
+        value: ${SENDY_DEFAULT_ADDRESS_PROVINCE_CODE}
+        scope: runtime
+      - key: SENDY_DEFAULT_ADDRESS_AREA_ID
+        value: ${SENDY_DEFAULT_ADDRESS_AREA_ID}
+        scope: runtime
       - key: TEAM6_ENABLED
         value: "true"
         scope: runtime
